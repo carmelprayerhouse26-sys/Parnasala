@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telugu Christian Songbook</title>
+    <meta name="description" content="A beautiful Telugu Christian Songbook with lyrics, search, and more.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ========== HEADER ========== -->
+    <header class="app-header">
+        <div class="logo-title">
+            <img id="header-logo" src="https://via.placeholder.com/50/6366f1/ffffff?text=✝" alt="Church Logo" class="church-logo">
+            <h1 id="header-title">Telugu Christian Songbook</h1>
+        </div>
+        <nav class="header-nav">
+            <button class="nav-btn active" data-view="songs-view">
+                <i class="fa-solid fa-music"></i> <span>Songs</span>
+            </button>
+            <button class="nav-btn" data-view="about-view">
+                <i class="fa-solid fa-church"></i> <span>About Us</span>
+            </button>
+            <button class="nav-btn" data-view="contact-view">
+                <i class="fa-solid fa-phone"></i> <span>Contact</span>
+            </button>
+            <button id="btn-admin-login" class="nav-btn admin-nav-btn">
+                <i class="fa-solid fa-lock"></i> <span>Admin</span>
+            </button>
+        </nav>
+        <!-- Mobile Hamburger -->
+        <button id="btn-hamburger" class="icon-btn hamburger-btn">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+    </header>
+
+    <!-- Mobile Nav Drawer -->
+    <div id="mobile-nav" class="mobile-nav hidden">
+        <button class="mobile-nav-item active" data-view="songs-view">
+            <i class="fa-solid fa-music"></i> Songs
+        </button>
+        <button class="mobile-nav-item" data-view="about-view">
+            <i class="fa-solid fa-church"></i> About Us
+        </button>
+        <button class="mobile-nav-item" data-view="contact-view">
+            <i class="fa-solid fa-phone"></i> Contact
+        </button>
+        <button class="mobile-nav-item" id="btn-admin-login-mobile">
+            <i class="fa-solid fa-lock"></i> Admin Login
+        </button>
+    </div>
+
+    <!-- ========== VIEW: SONGS ========== -->
+    <div id="songs-view" class="view-section active">
+        <div class="main-layout">
+            <!-- Sidebar -->
+            <aside class="sidebar" id="sidebar">
+                <div class="search-container">
+                    <i class="fa-solid fa-search search-icon"></i>
+                    <input type="text" id="search-input" placeholder="Search by number, Telugu or English...">
+                </div>
+                <div class="song-list-container">
+                    <ul id="song-list" class="song-list">
+                        <li class="loading-text" style="padding:1.5rem; color:#64748b; text-align:center;">Loading songs...</li>
+                    </ul>
+                </div>
+            </aside>
+
+            <!-- Main Reading Area -->
+            <main class="reading-area" id="reading-area">
+                <div class="reading-toolbar">
+                    <button id="btn-sidebar-toggle" class="icon-btn mobile-only" aria-label="Toggle Sidebar">
+                        <i class="fa-solid fa-list"></i>
+                    </button>
+                    <div class="font-controls">
+                        <button id="btn-decrease-font" class="icon-btn" aria-label="Decrease Font Size"><i class="fa-solid fa-minus"></i></button>
+                        <span class="font-label">Aa</span>
+                        <button id="btn-increase-font" class="icon-btn" aria-label="Increase Font Size"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                </div>
+                <div id="song-content" class="song-content fade-in">
+                    <div class="empty-state">
+                        <i class="fa-solid fa-book-bible"></i>
+                        <h2>Select a song to start reading</h2>
+                        <p>Choose from the list on the left, or search by title or number.</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- ========== VIEW: ABOUT US ========== -->
+    <div id="about-view" class="view-section">
+        <div class="page-content">
+            <div class="about-hero">
+                <i class="fa-solid fa-church about-hero-icon"></i>
+                <h2 id="about-church-name">Our Church</h2>
+                <p class="about-subtitle">Welcome to our community of faith, love, and worship.</p>
+            </div>
+            <div class="church-photos-grid" id="church-photos">
+                <!-- Photos injected by JS -->
+                <div class="photo-placeholder"><i class="fa-solid fa-image"></i><span>Church Photo 1</span></div>
+                <div class="photo-placeholder"><i class="fa-solid fa-image"></i><span>Church Photo 2</span></div>
+                <div class="photo-placeholder"><i class="fa-solid fa-image"></i><span>Church Photo 3</span></div>
+            </div>
+            <div class="about-info-cards">
+                <div class="info-card">
+                    <i class="fa-solid fa-clock"></i>
+                    <h3>Worship Times</h3>
+                    <p>Sunday Service: 10:00 AM<br>Prayer Meeting: Wed 7:00 PM</p>
+                </div>
+                <div class="info-card">
+                    <i class="fa-solid fa-book-bible"></i>
+                    <h3>Our Mission</h3>
+                    <p>To spread the love of Jesus Christ through worship, music, and community.</p>
+                </div>
+                <div class="info-card">
+                    <i class="fa-solid fa-hands-praying"></i>
+                    <h3>Fellowship</h3>
+                    <p>Join us every Sunday for worship, fellowship and the Word of God.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== VIEW: CONTACT ========== -->
+    <div id="contact-view" class="view-section">
+        <div class="page-content">
+            <div class="contact-hero">
+                <i class="fa-solid fa-envelope-open-text contact-hero-icon"></i>
+                <h2>Contact Us</h2>
+                <p>We'd love to hear from you. Reach out anytime!</p>
+            </div>
+            <div class="contact-cards">
+                <div class="contact-card">
+                    <div class="contact-icon-wrapper">
+                        <i class="fa-solid fa-location-dot"></i>
+                    </div>
+                    <h3>Address</h3>
+                    <p id="contact-address">Main Road, Your City, State - 500001</p>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon-wrapper">
+                        <i class="fa-solid fa-phone"></i>
+                    </div>
+                    <h3>Phone</h3>
+                    <p id="contact-phone">+91 98765 43210</p>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon-wrapper">
+                        <i class="fa-solid fa-envelope"></i>
+                    </div>
+                    <h3>Email</h3>
+                    <p id="contact-email">info@church.com</p>
+                </div>
+            </div>
+            <div class="map-placeholder">
+                <i class="fa-solid fa-map-location-dot"></i>
+                <p>Map will be displayed here once Google Maps API key is configured.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="app-footer" id="app-footer">
+        <div class="footer-grid">
+            <div class="footer-section">
+                <h4><i class="fa-solid fa-church"></i> Our Church</h4>
+                <p id="footer-church-name">Telugu Christian Songbook</p>
+                <p id="footer-address" class="footer-muted">Main Road, Your City</p>
+            </div>
+            <div class="footer-section">
+                <h4><i class="fa-solid fa-link"></i> Quick Links</h4>
+                <button class="footer-link" data-view="songs-view">Songs</button>
+                <button class="footer-link" data-view="about-view">About Us</button>
+                <button class="footer-link" data-view="contact-view">Contact</button>
+            </div>
+            <div class="footer-section">
+                <h4><i class="fa-solid fa-phone"></i> Contact</h4>
+                <p id="footer-phone" class="footer-muted">+91 98765 43210</p>
+                <p id="footer-email" class="footer-muted">info@church.com</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Telugu Christian Songbook. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- ========== LOGIN MODAL ========== -->
+    <div id="login-modal" class="modal hidden">
+        <div class="modal-content glass-effect">
+            <button class="close-modal"><i class="fa-solid fa-xmark"></i></button>
+            <div class="modal-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <h2>Admin Login</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" placeholder="Enter username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter password" required>
+                </div>
+                <p id="login-error" class="error-text"></p>
+                <button type="submit" class="primary-btn"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- ========== ADMIN DASHBOARD MODAL ========== -->
+    <div id="admin-modal" class="modal hidden">
+        <div class="modal-content admin-content glass-effect">
+            <header class="admin-header">
+                <h2><i class="fa-solid fa-gauge"></i> Admin Dashboard</h2>
+                <div class="admin-actions">
+                    <button id="btn-logout" class="secondary-btn"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+                    <button class="close-modal icon-btn"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </header>
+
+            <div class="admin-tabs">
+                <button class="tab-btn active" data-tab="manage-songs"><i class="fa-solid fa-music"></i> Songs</button>
+                <button class="tab-btn" data-tab="church-info"><i class="fa-solid fa-church"></i> Church Info</button>
+                <button class="tab-btn" data-tab="admin-settings"><i class="fa-solid fa-gear"></i> Settings</button>
+            </div>
+
+            <!-- Tab: Manage Songs -->
+            <div id="manage-songs" class="tab-content active">
+                <form id="song-form" class="song-form">
+                    <input type="hidden" id="song-id">
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="song-number">Song Number</label>
+                            <input type="number" id="song-number" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="song-title-telugu">Telugu Title</label>
+                            <input type="text" id="song-title-telugu" required>
+                        </div>
+                        <div class="form-group half">
+                            <label for="song-title-english">English Transliteration</label>
+                            <input type="text" id="song-title-english" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="song-lyrics">Lyrics (Telugu)</label>
+                        <textarea id="song-lyrics" rows="8" required></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="btn-clear-form" class="secondary-btn">Clear</button>
+                        <button type="submit" class="primary-btn"><i class="fa-solid fa-floppy-disk"></i> Save Song</button>
+                    </div>
+                </form>
+                <h3 style="margin-top:1.5rem;">Existing Songs</h3>
+                <div class="admin-song-list-container">
+                    <ul id="admin-song-list" class="admin-song-list"></ul>
+                </div>
+            </div>
+
+            <!-- Tab: Church Info -->
+            <div id="church-info" class="tab-content hidden">
+                <form id="church-info-form">
+                    <div class="form-group">
+                        <label for="church-name">Church / App Title</label>
+                        <input type="text" id="church-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="church-logo-url">Church Logo URL</label>
+                        <input type="url" id="church-logo-url" placeholder="https://...">
+                    </div>
+                    <div class="form-group">
+                        <label for="church-address">Address</label>
+                        <textarea id="church-address" rows="2"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="church-phone">Phone Number</label>
+                            <input type="text" id="church-phone">
+                        </div>
+                        <div class="form-group half">
+                            <label for="church-email">Email</label>
+                            <input type="email" id="church-email">
+                        </div>
+                    </div>
+                    <h3 style="margin:1rem 0 0.75rem;">Church Photos (URLs)</h3>
+                    <div class="form-group">
+                        <label for="church-photo1">Photo 1 URL</label>
+                        <input type="url" id="church-photo1" placeholder="https://...">
+                    </div>
+                    <div class="form-group">
+                        <label for="church-photo2">Photo 2 URL</label>
+                        <input type="url" id="church-photo2" placeholder="https://...">
+                    </div>
+                    <div class="form-group">
+                        <label for="church-photo3">Photo 3 URL</label>
+                        <input type="url" id="church-photo3" placeholder="https://...">
+                    </div>
+                    <button type="submit" class="primary-btn"><i class="fa-solid fa-floppy-disk"></i> Save Settings</button>
+                </form>
+            </div>
+
+            <!-- Tab: Admin Settings -->
+            <div id="admin-settings" class="tab-content hidden">
+                <form id="password-form">
+                    <div class="form-group">
+                        <label for="new-password">New Admin Password</label>
+                        <input type="password" id="new-password" required>
+                    </div>
+                    <button type="submit" class="primary-btn"><i class="fa-solid fa-key"></i> Change Password</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
