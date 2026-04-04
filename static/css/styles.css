@@ -437,16 +437,23 @@ img {
 }
 
 .hero-cross {
-    font-size: 3rem;
-    color: var(--accent);
     margin-bottom: 1.5rem;
-    opacity: 0.9;
-    animation: glow 3s ease-in-out infinite;
+    display: inline-block;
 }
 
-@keyframes glow {
-    0%, 100% { text-shadow: 0 0 20px var(--accent-glow); }
-    50% { text-shadow: 0 0 40px var(--accent-glow), 0 0 60px var(--accent-glow); }
+.hero-logo {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--accent);
+    box-shadow: 0 0 30px var(--accent-glow), 0 0 60px var(--accent-glow);
+    animation: hero-logo-pulse 3s ease-in-out infinite;
+}
+
+@keyframes hero-logo-pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 20px var(--accent-glow); }
+    50% { transform: scale(1.05); box-shadow: 0 0 40px var(--accent-glow), 0 0 60px var(--accent-glow); }
 }
 
 .hero-title {

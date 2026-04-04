@@ -45,7 +45,7 @@ async function renderHomePage() {
                 <div class="hero-overlay"></div>
                 <div class="hero-particles" id="hero-particles"></div>
                 <div class="hero-content">
-                    <div class="hero-cross">✝</div>
+                    <div class="hero-cross"><img src="/uploads/logo.jpg" alt="Parnasala Fellowship" class="hero-logo"></div>
                     <h1 class="hero-title">${escapeHtml(churchName)}</h1>
                     <p class="hero-tagline" data-i18n="hero_tagline">${escapeHtml(tagline)}</p>
                     <div class="hero-buttons">

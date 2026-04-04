@@ -10,7 +10,7 @@ const translations = {
         nav_home: 'Home',
         nav_songs: 'Songs',
         nav_about: 'About',
-        nav_articles: 'Articles',
+        nav_articles: 'The Drawn Sword',
         nav_contact: 'Contact',
         nav_address: 'Address',
 
@@ -53,8 +53,8 @@ const translations = {
         song_unfavorite: 'Unfavorite',
 
         // Articles
-        articles_tag: '📖 Monthly Articles',
-        articles_title: 'Articles',
+        articles_tag: '📖 The Drawn Sword',
+        articles_title: 'The Drawn Sword',
         articles_subtitle: 'Read our monthly publications and spiritual writings',
         articles_no_results: 'No articles yet',
         articles_no_results_desc: 'Articles will be published soon',
@@ -92,7 +92,7 @@ const translations = {
         admin_tab_images: 'Images',
         admin_tab_settings: 'Settings',
         admin_tab_categories: 'Categories',
-        admin_tab_articles: 'Articles',
+        admin_tab_articles: 'The Drawn Sword',
         admin_tab_add_article: 'Add Article',
         admin_article_title: 'Article Title',
         admin_article_title_te: 'Telugu Title',
@@ -128,7 +128,7 @@ const translations = {
         nav_home: 'హోమ్',
         nav_songs: 'పాటలు',
         nav_about: 'గురించి',
-        nav_articles: 'వ్యాసాలు',
+        nav_articles: 'దూయబడిన ఖడ్గం',
         nav_contact: 'సంప్రదించండి',
         nav_address: 'చిరునామా',
 
@@ -171,8 +171,8 @@ const translations = {
         song_unfavorite: 'ఇష్టం తీసివేయి',
 
         // Articles
-        articles_tag: '📖 నెలవారీ వ్యాసాలు',
-        articles_title: 'వ్యాసాలు',
+        articles_tag: '📖 దూయబడిన ఖడ్గం',
+        articles_title: 'దూయబడిన ఖడ్గం',
         articles_subtitle: 'మా నెలవారీ ప్రచురణలు మరియు ఆధ్యాత్మిక రచనలు చదవండి',
         articles_no_results: 'ఇంకా వ్యాసాలు లేవు',
         articles_no_results_desc: 'వ్యాసాలు త్వరలో ప్రచురించబడతాయి',
@@ -210,7 +210,7 @@ const translations = {
         admin_tab_images: 'చిత్రాలు',
         admin_tab_settings: 'సెట్టింగ్‌లు',
         admin_tab_categories: 'వర్గాలు',
-        admin_tab_articles: 'వ్యాసాలు',
+        admin_tab_articles: 'దూయబడిన ఖడ్గం',
         admin_tab_add_article: 'వ్యాసం జోడించు',
         admin_article_title: 'వ్యాసం పేరు',
         admin_article_title_te: 'తెలుగు పేరు',
