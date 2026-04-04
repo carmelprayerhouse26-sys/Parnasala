@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Parnasala Fellowship - Church Songs Book Platform. Browse, search, and share worship songs.">
+    <title>Parnasala Fellowship | Songs Book</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Telugu:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-cross">✝</div>
+            <div class="loading-text">Parnasala Fellowship</div>
+            <div class="loading-bar">
+                <div class="loading-bar-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <nav id="navbar" class="navbar">
+        <div class="nav-container">
+            <a href="#/" class="nav-brand" id="nav-brand">
+                <img id="nav-logo" class="nav-logo" src="" alt="Logo" style="display:none;">
+                <span id="nav-church-name" class="nav-church-name">Parnasala Fellowship</span>
+            </a>
+
+            <div class="nav-links" id="nav-links">
+                <a href="#/" class="nav-link" data-page="home">
+                    <span class="material-icons-round">home</span>
+                    <span data-i18n="nav_home">Home</span>
+                </a>
+                <a href="#/songs" class="nav-link" data-page="songs">
+                    <span class="material-icons-round">music_note</span>
+                    <span data-i18n="nav_songs">Songs</span>
+                </a>
+                <a href="#/about" class="nav-link" data-page="about">
+                    <span class="material-icons-round">info</span>
+                    <span data-i18n="nav_about">About</span>
+                </a>
+                <a href="#/contact" class="nav-link" data-page="contact">
+                    <span class="material-icons-round">call</span>
+                    <span data-i18n="nav_contact">Contact</span>
+                </a>
+                <a href="#/address" class="nav-link" data-page="address">
+                    <span class="material-icons-round">location_on</span>
+                    <span data-i18n="nav_address">Address</span>
+                </a>
+            </div>
+
+            <div class="nav-actions">
+                <!-- Language Toggle -->
+                <button id="lang-toggle" class="nav-icon-btn" title="Switch Language">
+                    <span class="lang-label">తె</span>
+                </button>
+                <!-- Theme Toggle -->
+                <button id="theme-toggle" class="nav-icon-btn" title="Toggle Dark/Light Mode">
+                    <span class="material-icons-round" id="theme-icon">light_mode</span>
+                </button>
+                <!-- Admin -->
+                <a href="#/admin" class="nav-icon-btn" title="Admin" id="admin-nav-btn">
+                    <span class="material-icons-round">admin_panel_settings</span>
+                </a>
+                <!-- Hamburger -->
+                <button class="hamburger" id="hamburger" aria-label="Menu">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+
+    <!-- Main Content -->
+    <main id="app" class="main-content">
+        <!-- Pages render here -->
+    </main>
+
+    <!-- Footer -->
+    <footer id="footer" class="footer">
+        <div class="footer-container">
+            <!-- Gallery -->
+            <div class="footer-section footer-gallery-section">
+                <h3 data-i18n="footer_gallery">Church Gallery</h3>
+                <div class="footer-gallery" id="footer-gallery">
+                    <p class="footer-empty" data-i18n="footer_no_images">No images yet</p>
+                </div>
+            </div>
+
+            <!-- Contact Info -->
+            <div class="footer-section">
+                <h3 data-i18n="footer_contact">Contact Us</h3>
+                <div id="footer-contact" class="footer-text">Loading...</div>
+            </div>
+
+            <!-- Social Links -->
+            <div class="footer-section">
+                <h3 data-i18n="footer_follow">Follow Us</h3>
+                <div class="social-links" id="footer-social"></div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; <span id="footer-year">2026</span> <span id="footer-name">Parnasala Fellowship</span>. <span
+                    data-i18n="footer_rights">All rights reserved.</span></p>
+        </div>
+    </footer>
+
+    <!-- Scroll to Top -->
+    <button id="scroll-top" class="scroll-top-btn" title="Scroll to Top">
+        <span class="material-icons-round">keyboard_arrow_up</span>
+    </button>
+
+    <!-- Image Lightbox -->
+    <div id="lightbox" class="lightbox" style="display:none;">
+        <button class="lightbox-close" id="lightbox-close">
+            <span class="material-icons-round">close</span>
+        </button>
+        <img id="lightbox-img" src="" alt="">
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/utils.js"></script>
+    <script src="/js/i18n.js"></script>
+    <script src="/js/components.js"></script>
+    <script src="/js/pages.js"></script>
+    <script src="/js/admin.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+
+</html>
