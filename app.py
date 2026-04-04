@@ -89,6 +89,16 @@ def init_db():
             name TEXT UNIQUE NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS articles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            title_te TEXT DEFAULT '',
+            content TEXT NOT NULL,
+            slug TEXT UNIQUE NOT NULL,
+            published_at TEXT DEFAULT (datetime('now')),
+            created_at TEXT DEFAULT (datetime('now'))
+        );
+
         INSERT OR IGNORE INTO settings (id) VALUES (1);
     ''')
     conn.commit()
@@ -198,6 +208,28 @@ def get_settings():
     except (json.JSONDecodeError, TypeError):
         data['social_links'] = {}
     return jsonify(data)
+
+
+# ── Public API: Articles ─────────────────────────────────────────────────────
+
+@app.route('/api/articles')
+def get_articles():
+    """List all published articles."""
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM articles ORDER BY published_at DESC").fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.route('/api/articles/<slug>')
+def get_article(slug):
+    """Get a single article by slug."""
+    conn = get_db()
+    row = conn.execute("SELECT * FROM articles WHERE slug = ?", (slug,)).fetchone()
+    conn.close()
+    if not row:
+        return jsonify({'error': 'Article not found'}), 404
+    return jsonify(dict(row))
 
 
 # ── Public API: Images ───────────────────────────────────────────────────────
@@ -602,6 +634,89 @@ def delete_category(cat_id):
     conn.commit()
     conn.close()
     return jsonify({'message': 'Category deleted'})
+
+
+# ── Admin: Articles CRUD ─────────────────────────────────────────────────────
+
+@app.route('/api/admin/articles', methods=['POST'])
+@admin_required
+def add_article():
+    data = request.get_json()
+    if not data or not data.get('title') or not data.get('content'):
+        return jsonify({'error': 'Title and content are required'}), 400
+
+    title = data['title'].strip()
+    title_te = data.get('title_te', '').strip()
+    content = data['content'].strip()
+    slug = slugify(title)
+
+    conn = get_db()
+    existing = conn.execute("SELECT id FROM articles WHERE slug = ?", (slug,)).fetchone()
+    counter = 1
+    original_slug = slug
+    while existing:
+        slug = f"{original_slug}-{counter}"
+        existing = conn.execute("SELECT id FROM articles WHERE slug = ?", (slug,)).fetchone()
+        counter += 1
+
+    conn.execute(
+        "INSERT INTO articles (title, title_te, content, slug) VALUES (?, ?, ?, ?)",
+        (title, title_te, content, slug)
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Article added', 'slug': slug}), 201
+
+
+@app.route('/api/admin/articles/<int:article_id>', methods=['PUT'])
+@admin_required
+def edit_article(article_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    conn = get_db()
+    article = conn.execute("SELECT * FROM articles WHERE id = ?", (article_id,)).fetchone()
+    if not article:
+        conn.close()
+        return jsonify({'error': 'Article not found'}), 404
+
+    title = data.get('title', article['title']).strip()
+    title_te = data.get('title_te', article['title_te']).strip()
+    content = data.get('content', article['content']).strip()
+
+    slug = article['slug']
+    if title != article['title']:
+        slug = slugify(title)
+        existing = conn.execute(
+            "SELECT id FROM articles WHERE slug = ? AND id != ?", (slug, article_id)
+        ).fetchone()
+        counter = 1
+        original_slug = slug
+        while existing:
+            slug = f"{original_slug}-{counter}"
+            existing = conn.execute(
+                "SELECT id FROM articles WHERE slug = ? AND id != ?", (slug, article_id)
+            ).fetchone()
+            counter += 1
+
+    conn.execute(
+        "UPDATE articles SET title=?, title_te=?, content=?, slug=? WHERE id=?",
+        (title, title_te, content, slug, article_id)
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Article updated', 'slug': slug})
+
+
+@app.route('/api/admin/articles/<int:article_id>', methods=['DELETE'])
+@admin_required
+def delete_article(article_id):
+    conn = get_db()
+    conn.execute("DELETE FROM articles WHERE id = ?", (article_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Article deleted'})
 
 
 # ── Initialize & Run ─────────────────────────────────────────────────────────

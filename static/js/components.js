@@ -26,6 +26,31 @@ function SongCard(song, index = 0) {
     `;
 }
 
+// ── Article Card ──────────────────────────────────────────────────────────────
+
+function ArticleCard(article, index = 0) {
+    const preview = truncate(article.content, 120);
+    const num = String(index + 1).padStart(2, '0');
+    const displayTitle = currentLang === 'te' && article.title_te ? article.title_te : article.title;
+    const subTitle = currentLang === 'te' ? article.title : article.title_te;
+    const pubDate = article.published_at ? formatDate(article.published_at) : '';
+
+    return `
+        <div class="article-card animate-in" onclick="navigateTo('/articles/${article.slug}')" style="animation-delay: ${index * 0.05}s">
+            <span class="article-card-number">${num}</span>
+            <div class="article-card-icon">
+                <span class="material-icons-round">auto_stories</span>
+            </div>
+            <div class="article-card-body">
+                <h3 class="article-card-title">${escapeHtml(displayTitle)}</h3>
+                ${subTitle ? `<p class="article-card-subtitle">${escapeHtml(subTitle)}</p>` : ''}
+                ${pubDate ? `<span class="article-card-date"><span class="material-icons-round" style="font-size:0.85rem;">calendar_today</span> ${pubDate}</span>` : ''}
+                <p class="article-card-preview">${escapeHtml(preview)}</p>
+            </div>
+        </div>
+    `;
+}
+
 // ── Toggle Favorite (global handler) ──────────────────────────────────────────
 
 function toggleFavorite(slug, btn) {

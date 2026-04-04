@@ -134,6 +134,14 @@ async function renderDashboard(username = 'Admin') {
                     <span class="material-icons-round" style="font-size:1rem;">label</span>
                     <span data-i18n="admin_tab_categories">${t('admin_tab_categories')}</span>
                 </button>
+                <button class="tab-btn" data-tab="articles">
+                    <span class="material-icons-round" style="font-size:1rem;">auto_stories</span>
+                    <span data-i18n="admin_tab_articles">${t('admin_tab_articles')}</span>
+                </button>
+                <button class="tab-btn" data-tab="add-article">
+                    <span class="material-icons-round" style="font-size:1rem;">post_add</span>
+                    <span data-i18n="admin_tab_add_article">${t('admin_tab_add_article')}</span>
+                </button>
                 <button class="tab-btn" data-tab="password">
                     <span class="material-icons-round" style="font-size:1rem;">key</span>
                     <span data-i18n="admin_tab_password">${t('admin_tab_password')}</span>
@@ -172,6 +180,8 @@ async function switchTab(tab) {
         case 'images': await renderAdminImages(content); break;
         case 'settings': await renderAdminSettings(content); break;
         case 'categories': await renderAdminCategories(content); break;
+        case 'articles': await renderAdminArticles(content); break;
+        case 'add-article': renderAddArticleForm(content); break;
         case 'password': renderChangePassword(content); break;
     }
 }
@@ -849,6 +859,179 @@ function renderChangePassword(container) {
         } catch (err) {
             msg.innerHTML = `<p class="form-error">${escapeHtml(err.message)}</p>`;
             showToast(err.message || 'Failed', 'error');
+        }
+    });
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TAB: MANAGE ARTICLES
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function renderAdminArticles(container) {
+    try {
+        const articles = await api('/api/articles');
+        if (articles.length === 0) {
+            container.innerHTML = EmptyState('auto_stories', 'No articles yet', 'Add your first article using the Add Article tab');
+            return;
+        }
+
+        container.innerHTML = `
+            <div style="margin-bottom:1rem; color: var(--text-muted); font-size:0.9rem;">
+                ${articles.length} article${articles.length !== 1 ? 's' : ''} total
+            </div>
+            <ul class="admin-song-list">
+                ${articles.map(a => `
+                    <li class="admin-song-item">
+                        <div class="admin-song-info">
+                            <div class="admin-song-title">${escapeHtml(a.title)}</div>
+                            <div class="admin-song-cat">${a.title_te ? escapeHtml(a.title_te) + ' · ' : ''}${a.slug}</div>
+                        </div>
+                        <div class="admin-song-actions">
+                            <button class="icon-btn" title="Edit" onclick="openEditArticle(${a.id})">
+                                <span class="material-icons-round">edit</span>
+                            </button>
+                            <button class="icon-btn danger" title="Delete" onclick="deleteArticle(${a.id}, '${escapeHtml(a.title).replace(/'/g, "\\'")}')">
+                                <span class="material-icons-round">delete</span>
+                            </button>
+                        </div>
+                    </li>
+                `).join('')}
+            </ul>
+        `;
+    } catch {
+        container.innerHTML = EmptyState('error', t('error_generic'));
+    }
+}
+
+async function openEditArticle(articleId) {
+    try {
+        const articles = await api('/api/articles');
+        const article = articles.find(a => a.id === articleId);
+        if (!article) return showToast('Article not found', 'error');
+
+        const body = `
+            <form id="edit-article-form">
+                <div class="form-group">
+                    <label class="form-label">${t('admin_article_title')}</label>
+                    <input type="text" class="form-input" id="edit-art-title" value="${escapeHtml(article.title)}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">${t('admin_article_title_te')}</label>
+                    <input type="text" class="form-input" id="edit-art-title-te" value="${escapeHtml(article.title_te || '')}" placeholder="తెలుగు పేరు">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">${t('admin_article_content')}</label>
+                    <textarea class="form-textarea" id="edit-art-content" rows="12" required>${escapeHtml(article.content)}</textarea>
+                </div>
+                <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal()">${t('admin_cancel')}</button>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <span class="material-icons-round" style="font-size:1rem;">save</span>
+                        ${t('admin_save')}
+                    </button>
+                </div>
+            </form>
+        `;
+
+        openModal('Edit Article', body);
+
+        setTimeout(() => {
+            const form = $('#edit-article-form');
+            if (form) {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    try {
+                        await api(`/api/admin/articles/${articleId}`, {
+                            method: 'PUT',
+                            body: {
+                                title: $('#edit-art-title').value.trim(),
+                                title_te: $('#edit-art-title-te').value.trim(),
+                                content: $('#edit-art-content').value.trim()
+                            }
+                        });
+                        closeModal();
+                        showToast('Article updated!', 'success');
+                        switchTab('articles');
+                    } catch (err) {
+                        showToast(err.message || 'Failed to update', 'error');
+                    }
+                });
+            }
+        }, 50);
+    } catch (err) {
+        showToast(err.message || 'Failed to load article', 'error');
+    }
+}
+
+function deleteArticle(articleId, title) {
+    confirmDialog(`Delete "${title}"? This cannot be undone.`, async () => {
+        try {
+            await api(`/api/admin/articles/${articleId}`, { method: 'DELETE' });
+            showToast('Article deleted', 'success');
+            switchTab('articles');
+        } catch (err) {
+            showToast(err.message || 'Failed to delete', 'error');
+        }
+    });
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TAB: ADD ARTICLE
+// ══════════════════════════════════════════════════════════════════════════════
+
+function renderAddArticleForm(container) {
+    container.innerHTML = `
+        <div style="max-width:700px;">
+            <h3 style="margin-bottom:1.5rem; display:flex; align-items:center; gap:0.5rem;">
+                <span class="material-icons-round" style="color:var(--accent);">post_add</span>
+                ${t('admin_tab_add_article')}
+            </h3>
+            <form id="add-article-form">
+                <div class="form-group">
+                    <label class="form-label">${t('admin_article_title')}</label>
+                    <input type="text" class="form-input" id="add-art-title" required placeholder="Enter article title">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">${t('admin_article_title_te')}</label>
+                    <input type="text" class="form-input" id="add-art-title-te" placeholder="తెలుగు పేరు ఇవ్వండి">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">${t('admin_article_content')}</label>
+                    <textarea class="form-textarea" id="add-art-content" rows="14" required
+                              placeholder="Write your article content here...&#10;&#10;Use blank lines to separate paragraphs"></textarea>
+                </div>
+                <div id="add-article-message"></div>
+                <button type="submit" class="btn btn-primary" id="add-article-btn">
+                    <span class="material-icons-round" style="font-size:1rem;">save</span>
+                    ${t('admin_save')}
+                </button>
+            </form>
+        </div>
+    `;
+
+    const form = $('#add-article-form');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = $('#add-article-btn');
+        btn.disabled = true;
+
+        try {
+            await api('/api/admin/articles', {
+                method: 'POST',
+                body: {
+                    title: $('#add-art-title').value.trim(),
+                    title_te: $('#add-art-title-te').value.trim(),
+                    content: $('#add-art-content').value.trim()
+                }
+            });
+            showToast('Article added successfully!', 'success');
+            form.reset();
+        } catch (err) {
+            showToast(err.message || 'Failed to add article', 'error');
+        } finally {
+            btn.disabled = false;
         }
     });
 }

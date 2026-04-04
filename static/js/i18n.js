@@ -10,6 +10,7 @@ const translations = {
         nav_home: 'Home',
         nav_songs: 'Songs',
         nav_about: 'About',
+        nav_articles: 'Articles',
         nav_contact: 'Contact',
         nav_address: 'Address',
 
@@ -51,6 +52,17 @@ const translations = {
         song_favorite: 'Favorite',
         song_unfavorite: 'Unfavorite',
 
+        // Articles
+        articles_tag: '📖 Monthly Articles',
+        articles_title: 'Articles',
+        articles_subtitle: 'Read our monthly publications and spiritual writings',
+        articles_no_results: 'No articles yet',
+        articles_no_results_desc: 'Articles will be published soon',
+        article_back: 'Back to Articles',
+        article_share: 'Share',
+        article_copy: 'Copy Content',
+        article_print: 'Print',
+
         // About / Contact / Address
         about_tag: 'ℹ About',
         about_title: 'About Our Church',
@@ -80,6 +92,11 @@ const translations = {
         admin_tab_images: 'Images',
         admin_tab_settings: 'Settings',
         admin_tab_categories: 'Categories',
+        admin_tab_articles: 'Articles',
+        admin_tab_add_article: 'Add Article',
+        admin_article_title: 'Article Title',
+        admin_article_title_te: 'Telugu Title',
+        admin_article_content: 'Article Content',
         admin_tab_password: 'Password',
         admin_song_title: 'Song Title',
         admin_song_lyrics: 'Song Lyrics',
@@ -111,6 +128,7 @@ const translations = {
         nav_home: 'హోమ్',
         nav_songs: 'పాటలు',
         nav_about: 'గురించి',
+        nav_articles: 'వ్యాసాలు',
         nav_contact: 'సంప్రదించండి',
         nav_address: 'చిరునామా',
 
@@ -152,6 +170,17 @@ const translations = {
         song_favorite: 'ఇష్టమైనది',
         song_unfavorite: 'ఇష్టం తీసివేయి',
 
+        // Articles
+        articles_tag: '📖 నెలవారీ వ్యాసాలు',
+        articles_title: 'వ్యాసాలు',
+        articles_subtitle: 'మా నెలవారీ ప్రచురణలు మరియు ఆధ్యాత్మిక రచనలు చదవండి',
+        articles_no_results: 'ఇంకా వ్యాసాలు లేవు',
+        articles_no_results_desc: 'వ్యాసాలు త్వరలో ప్రచురించబడతాయి',
+        article_back: 'వ్యాసాలకు తిరిగి',
+        article_share: 'భాగస్వామ్యం',
+        article_copy: 'కంటెంట్ కాపీ',
+        article_print: 'ముద్రణ',
+
         // About / Contact / Address
         about_tag: 'ℹ గురించి',
         about_title: 'మా సంఘం గురించి',
@@ -181,6 +210,11 @@ const translations = {
         admin_tab_images: 'చిత్రాలు',
         admin_tab_settings: 'సెట్టింగ్‌లు',
         admin_tab_categories: 'వర్గాలు',
+        admin_tab_articles: 'వ్యాసాలు',
+        admin_tab_add_article: 'వ్యాసం జోడించు',
+        admin_article_title: 'వ్యాసం పేరు',
+        admin_article_title_te: 'తెలుగు పేరు',
+        admin_article_content: 'వ్యాసం విషయం',
         admin_tab_password: 'పాస్‌వర్డ్',
         admin_song_title: 'పాట పేరు',
         admin_song_lyrics: 'పాట సాహిత్యం',

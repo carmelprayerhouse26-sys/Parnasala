@@ -57,6 +57,13 @@ async function router() {
         } else if (route === '/address') {
             App.currentPage = 'address';
             await renderAddressPage();
+        } else if (route === '/articles') {
+            App.currentPage = 'articles';
+            await renderArticlesPage();
+        } else if (route.startsWith('/articles/')) {
+            const slug = route.replace('/articles/', '');
+            App.currentPage = 'article-detail';
+            await renderArticleDetailPage(slug);
         } else if (route === '/admin') {
             App.currentPage = 'admin';
             await renderAdminPage();
@@ -84,6 +91,7 @@ function updateActiveNav(route) {
         if (
             (page === 'home' && route === '/') ||
             (page === 'songs' && (route === '/songs' || route.startsWith('/songs/'))) ||
+            (page === 'articles' && (route === '/articles' || route.startsWith('/articles/'))) ||
             (page === 'about' && route === '/about') ||
             (page === 'contact' && route === '/contact') ||
             (page === 'address' && route === '/address')

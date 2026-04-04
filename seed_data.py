@@ -222,8 +222,31 @@ def seed():
             "lyrics": "I love You Lord\nOh Your mercy never fails me\nAll my days I've been held in Your hands\nFrom the moment that I wake up\nUntil I lay my head\nI will sing of the goodness of God\n\nAll my life You have been faithful\nAll my life You have been so, so good\nWith every breath that I am able\nI will sing of the goodness of God\n\nI love Your voice\nYou have led me through the fire\nIn darkest night You are close like no other\nI've known You as a father\nI've known You as a friend\nI have lived in the goodness of God",
             "category": "Worship",
             "slug": "goodness-of-god"
+        },
+    ]
+
+    # ── Articles ─────────────────────────────────────────────────────────
+    articles = [
+        {
+            "title": "The Drawn Sword",
+            "title_te": "దూయబడిన ఖడ్గం",
+            "content": "Coming soon... This article will be published shortly.\n\nత్వరలో... ఈ వ్యాసం త్వరలో ప్రచురించబడుతుంది.",
+            "slug": "the-drawn-sword"
         }
     ]
+
+    # ── Create articles table ────────────────────────────────────────────
+    cur.executescript('''
+        CREATE TABLE IF NOT EXISTS articles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            title_te TEXT DEFAULT '',
+            content TEXT NOT NULL,
+            slug TEXT UNIQUE NOT NULL,
+            published_at TEXT DEFAULT (datetime('now')),
+            created_at TEXT DEFAULT (datetime('now'))
+        );
+    ''')
 
     # Clear existing songs
     cur.execute("DELETE FROM songs")
@@ -234,12 +257,21 @@ def seed():
             (song['title'], song['lyrics'], song['category'], song['slug'])
         )
 
+    # Seed articles
+    cur.execute("DELETE FROM articles")
+    for article in articles:
+        cur.execute(
+            "INSERT INTO articles (title, title_te, content, slug) VALUES (?, ?, ?, ?)",
+            (article['title'], article['title_te'], article['content'], article['slug'])
+        )
+
     conn.commit()
     conn.close()
     print("✅ Database seeded successfully!")
     print(f"   Admin: carmelprayerhouse26@gmail.com / Parnasala@fellowship")
     print(f"   Songs: {len(songs)} songs added")
     print(f"   Categories: {len(categories)} categories")
+    print(f"   Articles: {len(articles)} articles added")
 
 
 if __name__ == '__main__':

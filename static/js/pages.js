@@ -445,3 +445,124 @@ async function renderAddressPage() {
 
     setLanguage(currentLang);
 }
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ARTICLES PAGE
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function renderArticlesPage() {
+    const app = $('#app');
+
+    app.innerHTML = `
+        <div class="page-transition">
+            <section class="section">
+                <div class="container">
+                    ${SectionHeader(t('articles_tag'), 'articles_tag', t('articles_title'), 'articles_title', t('articles_subtitle'), 'articles_subtitle')}
+                    <div id="articles-container">
+                        ${SkeletonCards(4)}
+                    </div>
+                </div>
+            </section>
+        </div>
+    `;
+
+    try {
+        const articles = await api('/api/articles');
+        const container = $('#articles-container');
+
+        if (articles.length > 0) {
+            container.innerHTML = `<div class="articles-grid">${articles.map((a, i) => ArticleCard(a, i)).join('')}</div>`;
+            setTimeout(observeAnimations, 50);
+        } else {
+            container.innerHTML = EmptyState('auto_stories', t('articles_no_results'), t('articles_no_results_desc'));
+        }
+    } catch {
+        $('#articles-container').innerHTML = EmptyState('error', t('error_generic'));
+    }
+
+    setLanguage(currentLang);
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ARTICLE DETAIL PAGE
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function renderArticleDetailPage(slug) {
+    const app = $('#app');
+
+    app.innerHTML = `
+        <div class="page-transition article-detail">
+            <div class="skeleton" style="height:30px; width:120px; margin-bottom:2rem;"></div>
+            <div class="skeleton" style="height:40px; width:60%; margin-bottom:1rem;"></div>
+            <div class="skeleton" style="height:20px; width:30%; margin-bottom:2rem;"></div>
+            <div class="skeleton" style="height:300px; width:100%;"></div>
+        </div>
+    `;
+
+    try {
+        const article = await api(`/api/articles/${slug}`);
+        const displayTitle = currentLang === 'te' && article.title_te ? article.title_te : article.title;
+        const subTitle = currentLang === 'te' ? article.title : article.title_te;
+        const pubDate = article.published_at ? formatDate(article.published_at) : '';
+
+        app.innerHTML = `
+            <div class="page-transition article-detail">
+                <a href="#/articles" class="song-detail-back" data-i18n="article_back">
+                    <span class="material-icons-round">arrow_back</span>
+                    ${t('article_back')}
+                </a>
+
+                <div class="song-detail-header">
+                    <h1 class="song-detail-title">${escapeHtml(displayTitle)}</h1>
+                    ${subTitle ? `<p style="color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 0.5rem; font-family: var(--font-telugu);">${escapeHtml(subTitle)}</p>` : ''}
+                    <div class="song-detail-meta">
+                        <span class="song-card-category">
+                            <span class="material-icons-round" style="font-size:0.8rem;">auto_stories</span>
+                            Article
+                        </span>
+                        ${pubDate ? `<span style="color: var(--text-muted); font-size: 0.85rem;">${pubDate}</span>` : ''}
+                    </div>
+                </div>
+
+                <div class="song-detail-actions">
+                    <button class="btn btn-sm btn-secondary" onclick="shareArticle('${article.slug}')">
+                        <span class="material-icons-round" style="font-size:1rem;">share</span>
+                        <span data-i18n="article_share">${t('article_share')}</span>
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="copyToClipboard(\`${article.content.replace(/`/g, '\\`').replace(/\\/g, '\\\\')}\`)">
+                        <span class="material-icons-round" style="font-size:1rem;">content_copy</span>
+                        <span data-i18n="article_copy">${t('article_copy')}</span>
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="printContent('${escapeHtml(displayTitle).replace(/'/g, "\\'")}', \`${article.content.replace(/`/g, '\\`').replace(/\\/g, '\\\\')}\`)">
+                        <span class="material-icons-round" style="font-size:1rem;">print</span>
+                        <span data-i18n="article_print">${t('article_print')}</span>
+                    </button>
+                </div>
+
+                <div class="song-lyrics">${escapeHtml(article.content)}</div>
+            </div>
+        `;
+
+        setLanguage(currentLang);
+    } catch {
+        app.innerHTML = `
+            <div class="page-transition article-detail">
+                ${EmptyState('error', 'Article not found', 'The article you are looking for does not exist.')}
+                <div style="text-align:center; margin-top:1rem;">
+                    <a href="#/articles" class="btn btn-secondary">← ${t('article_back')}</a>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function shareArticle(slug) {
+    const url = `${window.location.origin}/#/articles/${slug}`;
+    if (navigator.share) {
+        navigator.share({ title: 'Article', url }).catch(() => {});
+    } else {
+        copyToClipboard(url);
+    }
+}
