@@ -267,12 +267,12 @@ def admin_login():
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
-    username = data.get('username', '').strip()
+    username = data.get('username', '').strip().lower()
     password = data.get('password', '')
 
     conn = get_db()
     admin = conn.execute(
-        "SELECT * FROM admins WHERE username = ?", (username,)
+        "SELECT * FROM admins WHERE LOWER(username) = ?", (username,)
     ).fetchone()
     conn.close()
 
