@@ -29,22 +29,35 @@ function SongCard(song, index = 0) {
 // ── Article Card ──────────────────────────────────────────────────────────────
 
 function ArticleCard(article, index = 0) {
-    const preview = truncate(article.content, 120);
+    const hasContent = article.content && article.content.trim();
+    const hasPdf = article.pdf_url && article.pdf_url.trim();
+    const preview = hasContent ? truncate(article.content, 120) : (hasPdf ? 'PDF Document attached' : '');
     const num = String(index + 1).padStart(2, '0');
     const displayTitle = currentLang === 'te' && article.title_te ? article.title_te : article.title;
     const subTitle = currentLang === 'te' ? article.title : article.title_te;
     const pubDate = article.published_at ? formatDate(article.published_at) : '';
 
+    let badges = '';
+    if (hasPdf) {
+        badges += '<span style="display:inline-flex; align-items:center; gap:0.2rem; font-size:0.75rem; padding:0.15rem 0.5rem; border-radius:999px; background:rgba(239,68,68,0.15); color:#ef4444; margin-right:0.3rem;"><span class="material-icons-round" style="font-size:0.75rem;">picture_as_pdf</span>PDF</span>';
+    }
+    if (hasContent) {
+        badges += '<span style="display:inline-flex; align-items:center; gap:0.2rem; font-size:0.75rem; padding:0.15rem 0.5rem; border-radius:999px; background:rgba(99,102,241,0.15); color:#6366f1; margin-right:0.3rem;"><span class="material-icons-round" style="font-size:0.75rem;">article</span>Text</span>';
+    }
+
     return `
         <div class="article-card animate-in" onclick="navigateTo('/articles/${article.slug}')" style="animation-delay: ${index * 0.05}s">
             <span class="article-card-number">${num}</span>
             <div class="article-card-icon">
-                <span class="material-icons-round">auto_stories</span>
+                <span class="material-icons-round">${hasPdf && !hasContent ? 'picture_as_pdf' : 'auto_stories'}</span>
             </div>
             <div class="article-card-body">
                 <h3 class="article-card-title">${escapeHtml(displayTitle)}</h3>
                 ${subTitle ? `<p class="article-card-subtitle">${escapeHtml(subTitle)}</p>` : ''}
-                ${pubDate ? `<span class="article-card-date"><span class="material-icons-round" style="font-size:0.85rem;">calendar_today</span> ${pubDate}</span>` : ''}
+                <div style="display:flex; align-items:center; flex-wrap:wrap; gap:0.3rem; margin:0.3rem 0;">
+                    ${badges}
+                    ${pubDate ? `<span class="article-card-date"><span class="material-icons-round" style="font-size:0.85rem;">calendar_today</span> ${pubDate}</span>` : ''}
+                </div>
                 <p class="article-card-preview">${escapeHtml(preview)}</p>
             </div>
         </div>

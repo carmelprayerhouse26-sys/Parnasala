@@ -49,6 +49,13 @@ function renderLoginPage() {
                         <span data-i18n="admin_login_btn">${t('admin_login_btn')}</span>
                     </button>
                 </form>
+
+                <div style="text-align:center; margin-top:1.25rem;">
+                    <button type="button" class="btn-link" onclick="renderForgotPasswordPage()" style="background:none; border:none; color:var(--accent); cursor:pointer; font-size:0.9rem; text-decoration:underline; padding:0;">
+                        <span class="material-icons-round" style="font-size:0.9rem; vertical-align:middle;">lock_reset</span>
+                        Forgot Password?
+                    </button>
+                </div>
             </div>
         </div>
     `;
@@ -86,6 +93,240 @@ async function handleLogin(e) {
         btn.disabled = false;
         btn.innerHTML = `<span class="material-icons-round" style="font-size:1.1rem;">login</span> ${t('admin_login_btn')}`;
     }
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FORGOT PASSWORD FLOW
+// ══════════════════════════════════════════════════════════════════════════════
+
+let forgotPasswordEmail = '';
+let forgotPasswordResetToken = '';
+
+function renderForgotPasswordPage() {
+    const app = $('#app');
+    app.innerHTML = `
+        <div class="page-transition admin-login">
+            <div class="admin-login-card">
+                <div class="admin-login-header">
+                    <span class="material-icons-round" style="color:var(--accent);">lock_reset</span>
+                    <h2>Reset Password</h2>
+                    <p>Enter your admin email to receive a verification code</p>
+                </div>
+
+                <form id="forgot-form">
+                    <div class="form-group">
+                        <label class="form-label">Admin Email</label>
+                        <input type="email" class="form-input" id="forgot-email" required
+                               placeholder="Enter your admin email" autocomplete="email">
+                    </div>
+                    <div id="forgot-message" style="margin-bottom:1rem;"></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%;" id="forgot-btn">
+                        <span class="material-icons-round" style="font-size:1.1rem;">send</span>
+                        Send Verification Code
+                    </button>
+                </form>
+
+                <div style="text-align:center; margin-top:1.25rem;">
+                    <button type="button" onclick="renderLoginPage()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9rem; padding:0;">
+                        <span class="material-icons-round" style="font-size:0.9rem; vertical-align:middle;">arrow_back</span>
+                        Back to Login
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const form = document.getElementById('forgot-form');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('forgot-email').value.trim();
+        const btn = document.getElementById('forgot-btn');
+        const msg = document.getElementById('forgot-message');
+
+        if (!email) {
+            msg.innerHTML = '<p class="form-error">Please enter your email</p>';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-icons-round" style="font-size:1.1rem;">hourglass_empty</span> Sending...';
+
+        try {
+            await api('/api/admin/forgot-password', {
+                method: 'POST',
+                body: { email }
+            });
+            forgotPasswordEmail = email;
+            showToast('Verification code sent!', 'success');
+            renderOtpVerifyPage();
+        } catch (err) {
+            msg.innerHTML = `<p class="form-error">${escapeHtml(err.message || 'Failed to send code')}</p>`;
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-icons-round" style="font-size:1.1rem;">send</span> Send Verification Code';
+        }
+    });
+}
+
+function renderOtpVerifyPage() {
+    const app = $('#app');
+    const maskedEmail = forgotPasswordEmail.replace(/(.{3})(.*)(@.*)/, '$1***$3');
+
+    app.innerHTML = `
+        <div class="page-transition admin-login">
+            <div class="admin-login-card">
+                <div class="admin-login-header">
+                    <span class="material-icons-round" style="color:var(--accent);">verified</span>
+                    <h2>Enter Verification Code</h2>
+                    <p>A 6-digit code was sent to <strong>${escapeHtml(maskedEmail)}</strong></p>
+                </div>
+
+                <form id="otp-form">
+                    <div class="form-group">
+                        <label class="form-label">Verification Code</label>
+                        <div style="display:flex; gap:0.5rem; justify-content:center;">
+                            <input type="text" class="form-input otp-input" id="otp-code" maxlength="6"
+                                   placeholder="000000" autocomplete="one-time-code"
+                                   style="text-align:center; font-size:1.8rem; font-weight:700; letter-spacing:0.5rem; font-family:monospace; padding:0.75rem;">
+                        </div>
+                    </div>
+                    <div id="otp-message" style="margin-bottom:1rem;"></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%;" id="otp-btn">
+                        <span class="material-icons-round" style="font-size:1.1rem;">check_circle</span>
+                        Verify Code
+                    </button>
+                </form>
+
+                <div style="text-align:center; margin-top:1.25rem; display:flex; justify-content:center; gap:1.5rem;">
+                    <button type="button" onclick="renderForgotPasswordPage()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.85rem; padding:0;">
+                        <span class="material-icons-round" style="font-size:0.85rem; vertical-align:middle;">refresh</span>
+                        Resend Code
+                    </button>
+                    <button type="button" onclick="renderLoginPage()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.85rem; padding:0;">
+                        <span class="material-icons-round" style="font-size:0.85rem; vertical-align:middle;">arrow_back</span>
+                        Back to Login
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Auto-focus on the OTP input
+    setTimeout(() => {
+        const otpInput = document.getElementById('otp-code');
+        if (otpInput) otpInput.focus();
+    }, 100);
+
+    const form = document.getElementById('otp-form');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const code = document.getElementById('otp-code').value.trim();
+        const btn = document.getElementById('otp-btn');
+        const msg = document.getElementById('otp-message');
+
+        if (!code || code.length < 6) {
+            msg.innerHTML = '<p class="form-error">Please enter the 6-digit code</p>';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-icons-round" style="font-size:1.1rem;">hourglass_empty</span> Verifying...';
+
+        try {
+            const result = await api('/api/admin/verify-otp', {
+                method: 'POST',
+                body: { email: forgotPasswordEmail, code }
+            });
+            forgotPasswordResetToken = result.reset_token;
+            showToast('Code verified!', 'success');
+            renderNewPasswordPage();
+        } catch (err) {
+            msg.innerHTML = `<p class="form-error">${escapeHtml(err.message || 'Invalid code')}</p>`;
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-icons-round" style="font-size:1.1rem;">check_circle</span> Verify Code';
+        }
+    });
+}
+
+function renderNewPasswordPage() {
+    const app = $('#app');
+    app.innerHTML = `
+        <div class="page-transition admin-login">
+            <div class="admin-login-card">
+                <div class="admin-login-header">
+                    <span class="material-icons-round" style="color:var(--success, #22c55e);">lock_open</span>
+                    <h2>Set New Password</h2>
+                    <p>Create a new password for your account</p>
+                </div>
+
+                <form id="reset-form">
+                    <div class="form-group">
+                        <label class="form-label">New Password</label>
+                        <input type="password" class="form-input" id="reset-new-pw" required minlength="6"
+                               placeholder="Enter new password (min 6 characters)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Confirm Password</label>
+                        <input type="password" class="form-input" id="reset-confirm-pw" required minlength="6"
+                               placeholder="Re-enter new password">
+                    </div>
+                    <div id="reset-message" style="margin-bottom:1rem;"></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%;" id="reset-btn">
+                        <span class="material-icons-round" style="font-size:1.1rem;">save</span>
+                        Reset Password
+                    </button>
+                </form>
+
+                <div style="text-align:center; margin-top:1.25rem;">
+                    <button type="button" onclick="renderLoginPage()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9rem; padding:0;">
+                        <span class="material-icons-round" style="font-size:0.9rem; vertical-align:middle;">arrow_back</span>
+                        Back to Login
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const form = document.getElementById('reset-form');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newPw = document.getElementById('reset-new-pw').value;
+        const confirmPw = document.getElementById('reset-confirm-pw').value;
+        const btn = document.getElementById('reset-btn');
+        const msg = document.getElementById('reset-message');
+
+        if (newPw.length < 6) {
+            msg.innerHTML = '<p class="form-error">Password must be at least 6 characters</p>';
+            return;
+        }
+
+        if (newPw !== confirmPw) {
+            msg.innerHTML = '<p class="form-error">Passwords do not match</p>';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-icons-round" style="font-size:1.1rem;">hourglass_empty</span> Resetting...';
+
+        try {
+            const result = await api('/api/admin/reset-password', {
+                method: 'POST',
+                body: {
+                    email: forgotPasswordEmail,
+                    reset_token: forgotPasswordResetToken,
+                    new_password: newPw
+                }
+            });
+            showToast(result.message || 'Password reset successfully!', 'success');
+            forgotPasswordEmail = '';
+            forgotPasswordResetToken = '';
+            renderLoginPage();
+        } catch (err) {
+            msg.innerHTML = `<p class="form-error">${escapeHtml(err.message || 'Failed to reset password')}</p>`;
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-icons-round" style="font-size:1.1rem;">save</span> Reset Password';
+        }
+    });
 }
 
 
@@ -884,7 +1125,11 @@ async function renderAdminArticles(container) {
                 ${articles.map(a => `
                     <li class="admin-song-item">
                         <div class="admin-song-info">
-                            <div class="admin-song-title">${escapeHtml(a.title)}</div>
+                            <div class="admin-song-title">
+                                ${escapeHtml(a.title)}
+                                ${a.pdf_url ? '<span class="material-icons-round" style="font-size:0.9rem; color:var(--accent); margin-left:0.3rem; vertical-align:middle;" title="Has PDF">picture_as_pdf</span>' : ''}
+                                ${a.content ? '<span class="material-icons-round" style="font-size:0.9rem; color:var(--text-muted); margin-left:0.2rem; vertical-align:middle;" title="Has text">article</span>' : ''}
+                            </div>
                             <div class="admin-song-cat">${a.title_te ? escapeHtml(a.title_te) + ' · ' : ''}${a.slug}</div>
                         </div>
                         <div class="admin-song-actions">
@@ -920,10 +1165,50 @@ async function openEditArticle(articleId) {
                     <label class="form-label">${t('admin_article_title_te')}</label>
                     <input type="text" class="form-input" id="edit-art-title-te" value="${escapeHtml(article.title_te || '')}" placeholder="తెలుగు పేరు">
                 </div>
+
+                <!-- PDF Upload Section -->
                 <div class="form-group">
-                    <label class="form-label">${t('admin_article_content')}</label>
-                    <textarea class="form-textarea" id="edit-art-content" rows="12" required>${escapeHtml(article.content)}</textarea>
+                    <label class="form-label" style="display:flex; align-items:center; gap:0.4rem;">
+                        <span class="material-icons-round" style="font-size:1.1rem; color:var(--accent);">picture_as_pdf</span>
+                        PDF File (optional)
+                    </label>
+                    ${article.pdf_url ? `
+                        <div id="edit-art-pdf-current" style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem; background:var(--bg-elevated); border:1px solid var(--border-color); border-radius:var(--radius-md); margin-bottom:0.75rem;">
+                            <span class="material-icons-round" style="color:var(--accent); font-size:1.5rem;">picture_as_pdf</span>
+                            <span style="flex:1; font-size:0.9rem; color:var(--text-secondary);">PDF attached</span>
+                            <a href="${article.pdf_url}" target="_blank" class="btn btn-sm btn-secondary" style="font-size:0.8rem;">
+                                <span class="material-icons-round" style="font-size:0.9rem;">open_in_new</span>
+                                View
+                            </a>
+                            <button type="button" class="btn btn-sm btn-danger" style="font-size:0.8rem;" onclick="document.getElementById('edit-art-remove-pdf').value='1'; this.closest('#edit-art-pdf-current').style.display='none';">
+                                <span class="material-icons-round" style="font-size:0.9rem;">delete</span>
+                                Remove
+                            </button>
+                        </div>
+                    ` : ''}
+                    <input type="hidden" id="edit-art-remove-pdf" value="0">
+                    <div class="file-upload-area" id="edit-art-pdf-area" style="padding:1rem;">
+                        <input type="file" id="edit-art-pdf-file" accept=".pdf" style="display:none;">
+                        <span class="material-icons-round" style="font-size:1.5rem;">upload_file</span>
+                        <p style="font-size:0.85rem;">${article.pdf_url ? 'Upload new PDF to replace' : 'Click to upload a PDF'}</p>
+                    </div>
+                    <div id="edit-art-pdf-name" style="font-size:0.85rem; color:var(--text-muted); margin-top:0.4rem;"></div>
                 </div>
+
+                <!-- Text Content Section -->
+                <div class="form-group">
+                    <label class="form-label" style="display:flex; align-items:center; gap:0.4rem;">
+                        <span class="material-icons-round" style="font-size:1.1rem; color:var(--accent);">article</span>
+                        Text Content (optional)
+                    </label>
+                    <textarea class="form-textarea" id="edit-art-content" rows="12" placeholder="Enter text content (optional if PDF is provided)">${escapeHtml(article.content || '')}</textarea>
+                </div>
+
+                <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:1rem;">
+                    <span class="material-icons-round" style="font-size:0.85rem; vertical-align:middle;">info</span>
+                    Provide at least one: PDF file or text content (or both)
+                </p>
+
                 <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
                     <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal()">${t('admin_cancel')}</button>
                     <button type="submit" class="btn btn-primary btn-sm">
@@ -934,21 +1219,41 @@ async function openEditArticle(articleId) {
             </form>
         `;
 
-        openModal('Edit Article', body);
+        openModal('Edit Article', body, { maxWidth: '650px' });
 
         setTimeout(() => {
-            const form = $('#edit-article-form');
+            // PDF upload area
+            const pdfArea = document.getElementById('edit-art-pdf-area');
+            const pdfInput = document.getElementById('edit-art-pdf-file');
+            const pdfName = document.getElementById('edit-art-pdf-name');
+            if (pdfArea && pdfInput) {
+                pdfArea.addEventListener('click', () => pdfInput.click());
+                pdfInput.addEventListener('change', () => {
+                    if (pdfInput.files.length > 0) {
+                        pdfName.textContent = '📄 ' + pdfInput.files[0].name;
+                    }
+                });
+            }
+
+            const form = document.getElementById('edit-article-form');
             if (form) {
                 form.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     try {
+                        const formData = new FormData();
+                        formData.append('title', document.getElementById('edit-art-title').value.trim());
+                        formData.append('title_te', document.getElementById('edit-art-title-te').value.trim());
+                        formData.append('content', document.getElementById('edit-art-content').value.trim());
+                        formData.append('remove_pdf', document.getElementById('edit-art-remove-pdf').value);
+
+                        const pdfFile = document.getElementById('edit-art-pdf-file');
+                        if (pdfFile && pdfFile.files.length > 0) {
+                            formData.append('pdf_file', pdfFile.files[0]);
+                        }
+
                         await api(`/api/admin/articles/${articleId}`, {
                             method: 'PUT',
-                            body: {
-                                title: $('#edit-art-title').value.trim(),
-                                title_te: $('#edit-art-title-te').value.trim(),
-                                content: $('#edit-art-content').value.trim()
-                            }
+                            body: formData
                         });
                         closeModal();
                         showToast('Article updated!', 'success');
@@ -990,18 +1295,51 @@ function renderAddArticleForm(container) {
             </h3>
             <form id="add-article-form">
                 <div class="form-group">
-                    <label class="form-label">${t('admin_article_title')}</label>
+                    <label class="form-label">${t('admin_article_title')} *</label>
                     <input type="text" class="form-input" id="add-art-title" required placeholder="Enter article title">
                 </div>
                 <div class="form-group">
                     <label class="form-label">${t('admin_article_title_te')}</label>
                     <input type="text" class="form-input" id="add-art-title-te" placeholder="తెలుగు పేరు ఇవ్వండి">
                 </div>
+
+                <!-- PDF Upload Section -->
                 <div class="form-group">
-                    <label class="form-label">${t('admin_article_content')}</label>
-                    <textarea class="form-textarea" id="add-art-content" rows="14" required
-                              placeholder="Write your article content here...&#10;&#10;Use blank lines to separate paragraphs"></textarea>
+                    <label class="form-label" style="display:flex; align-items:center; gap:0.4rem;">
+                        <span class="material-icons-round" style="font-size:1.1rem; color:var(--accent);">picture_as_pdf</span>
+                        PDF File (optional)
+                    </label>
+                    <div class="file-upload-area" id="add-art-pdf-area" style="padding:1.5rem;">
+                        <input type="file" id="add-art-pdf-file" accept=".pdf" style="display:none;">
+                        <span class="material-icons-round" style="font-size:2rem; color:var(--accent);">upload_file</span>
+                        <p style="margin-top:0.5rem;">Click or drag to upload a PDF</p>
+                        <p style="font-size:0.8rem; color: var(--text-muted); margin-top:0.3rem;">Max 16 MB · .pdf files only</p>
+                    </div>
+                    <div id="add-art-pdf-name" style="font-size:0.85rem; color:var(--accent); margin-top:0.5rem;"></div>
                 </div>
+
+                <!-- Divider -->
+                <div style="display:flex; align-items:center; gap:1rem; margin:1.5rem 0; color:var(--text-muted);">
+                    <div style="flex:1; height:1px; background:var(--border-color);"></div>
+                    <span style="font-size:0.85rem; text-transform:uppercase; letter-spacing:0.05em;">and / or</span>
+                    <div style="flex:1; height:1px; background:var(--border-color);"></div>
+                </div>
+
+                <!-- Text Content Section -->
+                <div class="form-group">
+                    <label class="form-label" style="display:flex; align-items:center; gap:0.4rem;">
+                        <span class="material-icons-round" style="font-size:1.1rem; color:var(--accent);">article</span>
+                        Text Content (optional)
+                    </label>
+                    <textarea class="form-textarea" id="add-art-content" rows="14"
+                              placeholder="Write your article content here...\n\nUse blank lines to separate paragraphs\n\n(Leave empty if only uploading a PDF)"></textarea>
+                </div>
+
+                <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:1rem; display:flex; align-items:center; gap:0.3rem;">
+                    <span class="material-icons-round" style="font-size:0.85rem;">info</span>
+                    Provide at least one: PDF file or text content. You can provide both.
+                </p>
+
                 <div id="add-article-message"></div>
                 <button type="submit" class="btn btn-primary" id="add-article-btn">
                     <span class="material-icons-round" style="font-size:1rem;">save</span>
@@ -1011,23 +1349,72 @@ function renderAddArticleForm(container) {
         </div>
     `;
 
-    const form = $('#add-article-form');
+    // PDF upload area interactions
+    const pdfArea = document.getElementById('add-art-pdf-area');
+    const pdfInput = document.getElementById('add-art-pdf-file');
+    const pdfName = document.getElementById('add-art-pdf-name');
+
+    pdfArea.addEventListener('click', () => pdfInput.click());
+    pdfArea.addEventListener('dragover', (e) => { e.preventDefault(); pdfArea.classList.add('dragover'); });
+    pdfArea.addEventListener('dragleave', () => pdfArea.classList.remove('dragover'));
+    pdfArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        pdfArea.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+            const file = e.dataTransfer.files[0];
+            if (file.name.toLowerCase().endsWith('.pdf')) {
+                // Transfer file to the input
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                pdfInput.files = dt.files;
+                pdfName.innerHTML = `<span class="material-icons-round" style="font-size:0.9rem; vertical-align:middle;">picture_as_pdf</span> ${escapeHtml(file.name)}`;
+            } else {
+                showToast('Only PDF files are allowed', 'error');
+            }
+        }
+    });
+    pdfInput.addEventListener('change', () => {
+        if (pdfInput.files.length > 0) {
+            pdfName.innerHTML = `<span class="material-icons-round" style="font-size:0.9rem; vertical-align:middle;">picture_as_pdf</span> ${escapeHtml(pdfInput.files[0].name)}`;
+        } else {
+            pdfName.textContent = '';
+        }
+    });
+
+    const form = document.getElementById('add-article-form');
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const btn = $('#add-article-btn');
+        const btn = document.getElementById('add-article-btn');
         btn.disabled = true;
 
         try {
+            const title = document.getElementById('add-art-title').value.trim();
+            const titleTe = document.getElementById('add-art-title-te').value.trim();
+            const content = document.getElementById('add-art-content').value.trim();
+            const pdfFile = document.getElementById('add-art-pdf-file');
+            const hasPdf = pdfFile && pdfFile.files.length > 0;
+
+            if (!content && !hasPdf) {
+                showToast('Please provide either text content or a PDF file (or both)', 'error');
+                btn.disabled = false;
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('title_te', titleTe);
+            formData.append('content', content);
+            if (hasPdf) {
+                formData.append('pdf_file', pdfFile.files[0]);
+            }
+
             await api('/api/admin/articles', {
                 method: 'POST',
-                body: {
-                    title: $('#add-art-title').value.trim(),
-                    title_te: $('#add-art-title-te').value.trim(),
-                    content: $('#add-art-content').value.trim()
-                }
+                body: formData
             });
             showToast('Article added successfully!', 'success');
             form.reset();
+            pdfName.textContent = '';
         } catch (err) {
             showToast(err.message || 'Failed to add article', 'error');
         } finally {

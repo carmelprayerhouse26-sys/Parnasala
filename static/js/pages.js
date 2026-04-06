@@ -506,6 +506,73 @@ async function renderArticleDetailPage(slug) {
         const displayTitle = currentLang === 'te' && article.title_te ? article.title_te : article.title;
         const subTitle = currentLang === 'te' ? article.title : article.title_te;
         const pubDate = article.published_at ? formatDate(article.published_at) : '';
+        const hasContent = article.content && article.content.trim();
+        const hasPdf = article.pdf_url && article.pdf_url.trim();
+
+        // Build action buttons
+        let actionButtons = `
+            <button class="btn btn-sm btn-secondary" onclick="shareArticle('${article.slug}')">
+                <span class="material-icons-round" style="font-size:1rem;">share</span>
+                <span data-i18n="article_share">${t('article_share')}</span>
+            </button>
+        `;
+
+        if (hasContent) {
+            actionButtons += `
+                <button class="btn btn-sm btn-secondary" onclick="copyToClipboard(\`${article.content.replace(/`/g, '\\`').replace(/\\/g, '\\\\')}\`)">
+                    <span class="material-icons-round" style="font-size:1rem;">content_copy</span>
+                    <span data-i18n="article_copy">${t('article_copy')}</span>
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="printContent('${escapeHtml(displayTitle).replace(/'/g, "\\'")}', \`${article.content.replace(/`/g, '\\`').replace(/\\/g, '\\\\')}\`)">
+                    <span class="material-icons-round" style="font-size:1rem;">print</span>
+                    <span data-i18n="article_print">${t('article_print')}</span>
+                </button>
+            `;
+        }
+
+        if (hasPdf) {
+            actionButtons += `
+                <a href="${article.pdf_url}" target="_blank" class="btn btn-sm btn-secondary" download>
+                    <span class="material-icons-round" style="font-size:1rem;">download</span>
+                    Download PDF
+                </a>
+            `;
+        }
+
+        // Build content sections
+        let contentSection = '';
+
+        if (hasPdf) {
+            contentSection += `
+                <div class="article-pdf-section" style="margin-bottom:${hasContent ? '2rem' : '0'};">
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem;">
+                        <span class="material-icons-round" style="color:var(--accent);">picture_as_pdf</span>
+                        <span style="font-weight:600; font-size:1rem;">PDF Document</span>
+                    </div>
+                    <div style="border-radius:var(--radius-lg); overflow:hidden; border:1px solid var(--border-color); background:var(--bg-card);">
+                        <iframe src="${article.pdf_url}" style="width:100%; height:600px; border:none; display:block;" title="PDF Viewer"></iframe>
+                    </div>
+                    <div style="text-align:center; margin-top:0.75rem;">
+                        <a href="${article.pdf_url}" target="_blank" class="btn btn-sm btn-primary" style="font-size:0.85rem;">
+                            <span class="material-icons-round" style="font-size:1rem;">open_in_new</span>
+                            Open PDF in New Tab
+                        </a>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (hasContent) {
+            if (hasPdf) {
+                contentSection += `
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem;">
+                        <span class="material-icons-round" style="color:var(--accent);">article</span>
+                        <span style="font-weight:600; font-size:1rem;">Text Content</span>
+                    </div>
+                `;
+            }
+            contentSection += `<div class="song-lyrics">${escapeHtml(article.content)}</div>`;
+        }
 
         app.innerHTML = `
             <div class="page-transition article-detail">
@@ -522,26 +589,16 @@ async function renderArticleDetailPage(slug) {
                             <span class="material-icons-round" style="font-size:0.8rem;">auto_stories</span>
                             Article
                         </span>
+                        ${hasPdf ? '<span class="song-card-category" style="background:rgba(239,68,68,0.15); color:#ef4444;"><span class="material-icons-round" style="font-size:0.8rem;">picture_as_pdf</span> PDF</span>' : ''}
                         ${pubDate ? `<span style="color: var(--text-muted); font-size: 0.85rem;">${pubDate}</span>` : ''}
                     </div>
                 </div>
 
                 <div class="song-detail-actions">
-                    <button class="btn btn-sm btn-secondary" onclick="shareArticle('${article.slug}')">
-                        <span class="material-icons-round" style="font-size:1rem;">share</span>
-                        <span data-i18n="article_share">${t('article_share')}</span>
-                    </button>
-                    <button class="btn btn-sm btn-secondary" onclick="copyToClipboard(\`${article.content.replace(/`/g, '\\`').replace(/\\/g, '\\\\')}\`)">
-                        <span class="material-icons-round" style="font-size:1rem;">content_copy</span>
-                        <span data-i18n="article_copy">${t('article_copy')}</span>
-                    </button>
-                    <button class="btn btn-sm btn-secondary" onclick="printContent('${escapeHtml(displayTitle).replace(/'/g, "\\'")}', \`${article.content.replace(/`/g, '\\`').replace(/\\/g, '\\\\')}\`)">
-                        <span class="material-icons-round" style="font-size:1rem;">print</span>
-                        <span data-i18n="article_print">${t('article_print')}</span>
-                    </button>
+                    ${actionButtons}
                 </div>
 
-                <div class="song-lyrics">${escapeHtml(article.content)}</div>
+                ${contentSection}
             </div>
         `;
 

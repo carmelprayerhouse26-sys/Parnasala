@@ -10,6 +10,12 @@ import csv
 import io
 import re
 import sqlite3
+import uuid
+import random
+import time
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from functools import wraps
 
@@ -93,7 +99,8 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
             title_te TEXT DEFAULT '',
-            content TEXT NOT NULL,
+            content TEXT DEFAULT '',
+            pdf_url TEXT DEFAULT '',
             slug TEXT UNIQUE NOT NULL,
             published_at TEXT DEFAULT (datetime('now')),
             created_at TEXT DEFAULT (datetime('now'))
@@ -101,6 +108,13 @@ def init_db():
 
         INSERT OR IGNORE INTO settings (id) VALUES (1);
     ''')
+
+    # Migration: Add pdf_url column to articles if it doesn't exist
+    try:
+        conn.execute("SELECT pdf_url FROM articles LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE articles ADD COLUMN pdf_url TEXT DEFAULT ''")
+
     conn.commit()
     conn.close()
 
@@ -282,6 +296,180 @@ def admin_check():
         })
     return jsonify({'logged_in': False})
 
+
+# ── Forgot Password ─────────────────────────────────────────────────────────
+
+# In-memory OTP store: { email: { code, expires_at } }
+password_reset_otps = {}
+
+ADMIN_EMAIL = 'carmelprayerhouse26@gmail.com'
+SMTP_HOST = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
+SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
+SMTP_EMAIL = os.environ.get('SMTP_EMAIL', ADMIN_EMAIL)
+SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
+
+
+def send_otp_email(to_email, otp_code):
+    """Send OTP code via Gmail SMTP."""
+    if not SMTP_PASSWORD:
+        print(f"\n  ⚠️  SMTP_PASSWORD not set. OTP code for {to_email}: {otp_code}\n")
+        return True  # Allow in dev mode
+
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = SMTP_EMAIL
+        msg['To'] = to_email
+        msg['Subject'] = 'Parnasala Fellowship - Password Reset Code'
+
+        body = f"""
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 2rem;">
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <h2 style="color: #7c3aed; margin: 0;">Parnasala Fellowship</h2>
+                <p style="color: #666; font-size: 0.9rem;">Password Reset Request</p>
+            </div>
+            <div style="background: #f8f9fa; border-radius: 12px; padding: 1.5rem; text-align: center; margin-bottom: 1.5rem;">
+                <p style="color: #333; margin: 0 0 1rem;">Your verification code is:</p>
+                <div style="font-size: 2.5rem; font-weight: 700; letter-spacing: 0.5rem; color: #7c3aed; font-family: monospace;">
+                    {otp_code}
+                </div>
+            </div>
+            <p style="color: #888; font-size: 0.85rem; text-align: center;">
+                This code expires in <strong>10 minutes</strong>.<br>
+                If you did not request this, please ignore this email.
+            </p>
+        </div>
+        """
+
+        msg.attach(MIMEText(body, 'html'))
+
+        server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
+        server.starttls()
+        server.login(SMTP_EMAIL, SMTP_PASSWORD)
+        server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"  ❌ Email send failed: {e}")
+        print(f"  ⚠️  OTP code for {to_email}: {otp_code}")
+        return False
+
+
+@app.route('/api/admin/forgot-password', methods=['POST'])
+def forgot_password():
+    """Send OTP to admin email for password reset."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    email = data.get('email', '').strip().lower()
+
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+
+    # Check if admin exists with this email
+    conn = get_db()
+    admin = conn.execute(
+        "SELECT * FROM admins WHERE LOWER(username) = ?", (email,)
+    ).fetchone()
+    conn.close()
+
+    if not admin:
+        # Don't reveal if email exists or not (security best practice)
+        return jsonify({'message': 'If this email is registered, a verification code has been sent.'})
+
+    # Generate 6-digit OTP
+    otp_code = str(random.randint(100000, 999999))
+    password_reset_otps[email] = {
+        'code': otp_code,
+        'expires_at': time.time() + 600  # 10 minutes
+    }
+
+    # Send email
+    send_otp_email(email, otp_code)
+
+    return jsonify({'message': 'If this email is registered, a verification code has been sent.'})
+
+
+@app.route('/api/admin/verify-otp', methods=['POST'])
+def verify_otp():
+    """Verify OTP code for password reset."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    email = data.get('email', '').strip().lower()
+    code = data.get('code', '').strip()
+
+    if not email or not code:
+        return jsonify({'error': 'Email and code are required'}), 400
+
+    otp_data = password_reset_otps.get(email)
+
+    if not otp_data:
+        return jsonify({'error': 'No reset code found. Please request a new one.'}), 400
+
+    if time.time() > otp_data['expires_at']:
+        del password_reset_otps[email]
+        return jsonify({'error': 'Code has expired. Please request a new one.'}), 400
+
+    if otp_data['code'] != code:
+        return jsonify({'error': 'Invalid code. Please try again.'}), 400
+
+    # OTP is valid — generate a reset token
+    reset_token = uuid.uuid4().hex
+    password_reset_otps[email] = {
+        'reset_token': reset_token,
+        'expires_at': time.time() + 300  # 5 minutes to set new password
+    }
+
+    return jsonify({'message': 'Code verified', 'reset_token': reset_token})
+
+
+@app.route('/api/admin/reset-password', methods=['POST'])
+def reset_password():
+    """Reset password using verified reset token."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    email = data.get('email', '').strip().lower()
+    reset_token = data.get('reset_token', '').strip()
+    new_password = data.get('new_password', '')
+
+    if not email or not reset_token or not new_password:
+        return jsonify({'error': 'All fields are required'}), 400
+
+    if len(new_password) < 6:
+        return jsonify({'error': 'Password must be at least 6 characters'}), 400
+
+    otp_data = password_reset_otps.get(email)
+
+    if not otp_data or otp_data.get('reset_token') != reset_token:
+        return jsonify({'error': 'Invalid or expired reset session. Please start over.'}), 400
+
+    if time.time() > otp_data['expires_at']:
+        del password_reset_otps[email]
+        return jsonify({'error': 'Reset session expired. Please start over.'}), 400
+
+    # Update password
+    conn = get_db()
+    admin = conn.execute(
+        "SELECT * FROM admins WHERE LOWER(username) = ?", (email,)
+    ).fetchone()
+
+    if not admin:
+        conn.close()
+        return jsonify({'error': 'Account not found'}), 404
+
+    new_hash = bcrypt.generate_password_hash(new_password).decode('utf-8')
+    conn.execute("UPDATE admins SET password_hash = ? WHERE id = ?", (new_hash, admin['id']))
+    conn.commit()
+    conn.close()
+
+    # Clean up OTP
+    del password_reset_otps[email]
+
+    return jsonify({'message': 'Password reset successfully! You can now login with your new password.'})
 
 @app.route('/api/admin/change-password', methods=['POST'])
 @admin_required
@@ -638,16 +826,44 @@ def delete_category(cat_id):
 
 # ── Admin: Articles CRUD ─────────────────────────────────────────────────────
 
+ALLOWED_PDF_EXTENSIONS = {'pdf'}
+
+
 @app.route('/api/admin/articles', methods=['POST'])
 @admin_required
 def add_article():
-    data = request.get_json()
-    if not data or not data.get('title') or not data.get('content'):
-        return jsonify({'error': 'Title and content are required'}), 400
+    # Support both JSON and multipart/form-data
+    if request.content_type and 'multipart/form-data' in request.content_type:
+        title = request.form.get('title', '').strip()
+        title_te = request.form.get('title_te', '').strip()
+        content = request.form.get('content', '').strip()
+        pdf_url = ''
 
-    title = data['title'].strip()
-    title_te = data.get('title_te', '').strip()
-    content = data['content'].strip()
+        # Handle PDF upload
+        if 'pdf_file' in request.files:
+            pdf_file = request.files['pdf_file']
+            if pdf_file.filename and allowed_file(pdf_file.filename, ALLOWED_PDF_EXTENSIONS):
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_id = uuid.uuid4().hex[:6]
+                pdf_filename = f"article_{timestamp}_{unique_id}.pdf"
+                pdf_path = os.path.join(UPLOAD_FOLDER, pdf_filename)
+                pdf_file.save(pdf_path)
+                pdf_url = f"/uploads/{pdf_filename}"
+    else:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        title = data.get('title', '').strip()
+        title_te = data.get('title_te', '').strip()
+        content = data.get('content', '').strip()
+        pdf_url = data.get('pdf_url', '').strip()
+
+    if not title:
+        return jsonify({'error': 'Title is required'}), 400
+
+    if not content and not pdf_url:
+        return jsonify({'error': 'Please provide either text content or a PDF file (or both)'}), 400
+
     slug = slugify(title)
 
     conn = get_db()
@@ -660,8 +876,8 @@ def add_article():
         counter += 1
 
     conn.execute(
-        "INSERT INTO articles (title, title_te, content, slug) VALUES (?, ?, ?, ?)",
-        (title, title_te, content, slug)
+        "INSERT INTO articles (title, title_te, content, pdf_url, slug) VALUES (?, ?, ?, ?, ?)",
+        (title, title_te, content, pdf_url, slug)
     )
     conn.commit()
     conn.close()
@@ -671,19 +887,70 @@ def add_article():
 @app.route('/api/admin/articles/<int:article_id>', methods=['PUT'])
 @admin_required
 def edit_article(article_id):
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
-
     conn = get_db()
     article = conn.execute("SELECT * FROM articles WHERE id = ?", (article_id,)).fetchone()
     if not article:
         conn.close()
         return jsonify({'error': 'Article not found'}), 404
 
-    title = data.get('title', article['title']).strip()
-    title_te = data.get('title_te', article['title_te']).strip()
-    content = data.get('content', article['content']).strip()
+    # Support both JSON and multipart/form-data
+    if request.content_type and 'multipart/form-data' in request.content_type:
+        title = request.form.get('title', article['title']).strip()
+        title_te = request.form.get('title_te', article['title_te'] or '').strip()
+        content = request.form.get('content', article['content'] or '').strip()
+        pdf_url = article['pdf_url'] or ''
+
+        # Handle PDF upload
+        if 'pdf_file' in request.files:
+            pdf_file = request.files['pdf_file']
+            if pdf_file.filename and allowed_file(pdf_file.filename, ALLOWED_PDF_EXTENSIONS):
+                # Delete old PDF if exists
+                if article['pdf_url']:
+                    old_pdf = article['pdf_url'].replace('/uploads/', '')
+                    old_path = os.path.join(UPLOAD_FOLDER, old_pdf)
+                    if os.path.exists(old_path):
+                        os.remove(old_path)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_id = uuid.uuid4().hex[:6]
+                pdf_filename = f"article_{timestamp}_{unique_id}.pdf"
+                pdf_path = os.path.join(UPLOAD_FOLDER, pdf_filename)
+                pdf_file.save(pdf_path)
+                pdf_url = f"/uploads/{pdf_filename}"
+
+        # Check if user wants to remove PDF
+        if request.form.get('remove_pdf') == '1':
+            if article['pdf_url']:
+                old_pdf = article['pdf_url'].replace('/uploads/', '')
+                old_path = os.path.join(UPLOAD_FOLDER, old_pdf)
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+            pdf_url = ''
+    else:
+        data = request.get_json()
+        if not data:
+            conn.close()
+            return jsonify({'error': 'No data provided'}), 400
+        title = data.get('title', article['title']).strip()
+        title_te = data.get('title_te', article['title_te'] or '').strip()
+        content = data.get('content', article['content'] or '').strip()
+        pdf_url = data.get('pdf_url', article['pdf_url'] or '').strip()
+
+        # Check if user wants to remove PDF
+        if data.get('remove_pdf'):
+            if article['pdf_url']:
+                old_pdf = article['pdf_url'].replace('/uploads/', '')
+                old_path = os.path.join(UPLOAD_FOLDER, old_pdf)
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+            pdf_url = ''
+
+    if not title:
+        conn.close()
+        return jsonify({'error': 'Title is required'}), 400
+
+    if not content and not pdf_url:
+        conn.close()
+        return jsonify({'error': 'Please provide either text content or a PDF file (or both)'}), 400
 
     slug = article['slug']
     if title != article['title']:
@@ -701,8 +968,8 @@ def edit_article(article_id):
             counter += 1
 
     conn.execute(
-        "UPDATE articles SET title=?, title_te=?, content=?, slug=? WHERE id=?",
-        (title, title_te, content, slug, article_id)
+        "UPDATE articles SET title=?, title_te=?, content=?, pdf_url=?, slug=? WHERE id=?",
+        (title, title_te, content, pdf_url, slug, article_id)
     )
     conn.commit()
     conn.close()
@@ -713,6 +980,12 @@ def edit_article(article_id):
 @admin_required
 def delete_article(article_id):
     conn = get_db()
+    article = conn.execute("SELECT * FROM articles WHERE id = ?", (article_id,)).fetchone()
+    if article and article['pdf_url']:
+        pdf_name = article['pdf_url'].replace('/uploads/', '')
+        pdf_path = os.path.join(UPLOAD_FOLDER, pdf_name)
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
     conn.execute("DELETE FROM articles WHERE id = ?", (article_id,))
     conn.commit()
     conn.close()
