@@ -112,6 +112,15 @@ def init_db():
         INSERT OR IGNORE INTO settings (id) VALUES (1);
     ''')
 
+    # Seed default admin if table is empty
+    admin_count = conn.execute("SELECT COUNT(*) FROM admins").fetchone()[0]
+    if admin_count == 0:
+        pw_hash = bcrypt.generate_password_hash('Parnasala@fellowship').decode('utf-8')
+        conn.execute(
+            "INSERT INTO admins (username, password_hash) VALUES (?, ?)",
+            ('carmelprayerhouse26@gmail.com', pw_hash)
+        )
+
     # Migration: Add pdf_url column to articles if it doesn't exist
     try:
         conn.execute("SELECT pdf_url FROM articles LIMIT 1")
