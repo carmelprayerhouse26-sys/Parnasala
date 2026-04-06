@@ -40,8 +40,13 @@ function renderLoginPage() {
                     </div>
                     <div class="form-group">
                         <label class="form-label" data-i18n="admin_password">${t('admin_password')}</label>
-                        <input type="password" class="form-input" id="login-password" required
-                               placeholder="••••••••" autocomplete="current-password">
+                        <div style="position:relative;">
+                            <input type="password" class="form-input" id="login-password" required
+                                   placeholder="••••••••" autocomplete="current-password" style="padding-right: 2.5rem;">
+                            <button type="button" tabindex="-1" onclick="const input = this.previousElementSibling; if(input.type === 'password') { input.type = 'text'; this.querySelector('span').textContent = 'visibility'; } else { input.type = 'password'; this.querySelector('span').textContent = 'visibility_off'; }" style="position:absolute; right:0.5rem; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--text-muted); display:flex; align-items:center; justify-content:center; padding:0;">
+                                <span class="material-icons-round" style="font-size:1.2rem;">visibility_off</span>
+                            </button>
+                        </div>
                     </div>
                     <div id="login-error" class="form-error" style="display:none; margin-bottom:1rem;"></div>
                     <button type="submit" class="btn btn-primary" style="width:100%;" id="login-btn">
@@ -262,13 +267,23 @@ function renderNewPasswordPage() {
                 <form id="reset-form">
                     <div class="form-group">
                         <label class="form-label">New Password</label>
-                        <input type="password" class="form-input" id="reset-new-pw" required minlength="6"
-                               placeholder="Enter new password (min 6 characters)">
+                        <div style="position:relative;">
+                            <input type="password" class="form-input" id="reset-new-pw" required minlength="6"
+                                   placeholder="Enter new password (min 6 characters)" style="padding-right: 2.5rem;">
+                            <button type="button" tabindex="-1" onclick="const input = this.previousElementSibling; if(input.type === 'password') { input.type = 'text'; this.querySelector('span').textContent = 'visibility'; } else { input.type = 'password'; this.querySelector('span').textContent = 'visibility_off'; }" style="position:absolute; right:0.5rem; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--text-muted); display:flex; align-items:center; justify-content:center; padding:0;">
+                                <span class="material-icons-round" style="font-size:1.2rem;">visibility_off</span>
+                            </button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Confirm Password</label>
-                        <input type="password" class="form-input" id="reset-confirm-pw" required minlength="6"
-                               placeholder="Re-enter new password">
+                        <div style="position:relative;">
+                            <input type="password" class="form-input" id="reset-confirm-pw" required minlength="6"
+                                   placeholder="Re-enter new password" style="padding-right: 2.5rem;">
+                            <button type="button" tabindex="-1" onclick="const input = this.previousElementSibling; if(input.type === 'password') { input.type = 'text'; this.querySelector('span').textContent = 'visibility'; } else { input.type = 'password'; this.querySelector('span').textContent = 'visibility_off'; }" style="position:absolute; right:0.5rem; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--text-muted); display:flex; align-items:center; justify-content:center; padding:0;">
+                                <span class="material-icons-round" style="font-size:1.2rem;">visibility_off</span>
+                            </button>
+                        </div>
                     </div>
                     <div id="reset-message" style="margin-bottom:1rem;"></div>
                     <button type="submit" class="btn btn-primary" style="width:100%;" id="reset-btn">

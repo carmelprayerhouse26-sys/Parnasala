@@ -265,8 +265,12 @@ async function loadFooterData() {
             let socialHtml = '';
             for (const [platform, url] of Object.entries(social)) {
                 if (url && url !== '#') {
+                    let finalUrl = url;
+                    if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+                        finalUrl = 'https://' + finalUrl;
+                    }
                     socialHtml += `
-                        <a href="${escapeHtml(url)}" class="social-link" target="_blank" rel="noopener" title="${platform}">
+                        <a href="${escapeHtml(finalUrl)}" class="social-link" target="_blank" rel="noopener" title="${platform}">
                             ${socialIcons[platform] || '🔗'}
                         </a>
                     `;

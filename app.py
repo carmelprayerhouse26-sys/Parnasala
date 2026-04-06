@@ -18,6 +18,9 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from functools import wraps
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from flask import (
     Flask, request, jsonify, session,
