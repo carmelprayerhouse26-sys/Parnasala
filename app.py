@@ -270,17 +270,28 @@ def admin_login():
     username = data.get('username', '').strip().lower()
     password = data.get('password', '')
 
+    print(f"\n[DEBUG LOGIN] Attempting login for username: '{username}', password length: {len(password)}")
+
     conn = get_db()
     admin = conn.execute(
         "SELECT * FROM admins WHERE LOWER(username) = ?", (username,)
     ).fetchone()
     conn.close()
 
-    if admin and bcrypt.check_password_hash(admin['password_hash'], password):
+    if not admin:
+        print(f"[DEBUG LOGIN] Admin username '{username}' not found in database!")
+        return jsonify({'error': 'Invalid email or password'}), 401
+    
+    print(f"[DEBUG LOGIN] Admin found in DB: '{admin['username']}'")
+    
+    if bcrypt.check_password_hash(admin['password_hash'], password):
+        print("[DEBUG LOGIN] Password match! Logging in.")
         session['admin_logged_in'] = True
         session['admin_id'] = admin['id']
         session['admin_username'] = admin['username']
         return jsonify({'message': 'Login successful', 'username': admin['username']})
+    
+    print(f"[DEBUG LOGIN] Password mismatch! Provided password: '{password}'")
     return jsonify({'error': 'Invalid email or password'}), 401
 
 
