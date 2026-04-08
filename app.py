@@ -22,6 +22,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL')
+if CLOUDINARY_URL:
+    try:
+        import cloudinary
+        import cloudinary.uploader
+        cloudinary.config(cloudinary_url=CLOUDINARY_URL)
+    except ImportError:
+        CLOUDINARY_URL = None
+
 from flask import (
     Flask, request, jsonify, session,
     send_from_directory, redirect
@@ -47,14 +56,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ── Database Helpers ─────────────────────────────────────────────────────────
 
-def get_db():
-    """Get a database connection with Row factory."""
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA foreign_keys=ON")
-    return conn
-
+from db_adapter import get_db
 
 def init_db():
     """Create all tables if they don't exist."""
@@ -124,7 +126,7 @@ def init_db():
     # Migration: Add pdf_url column to articles if it doesn't exist
     try:
         conn.execute("SELECT pdf_url FROM articles LIMIT 1")
-    except sqlite3.OperationalError:
+    except Exception:
         conn.execute("ALTER TABLE articles ADD COLUMN pdf_url TEXT DEFAULT ''")
 
     conn.commit()
@@ -339,11 +341,6 @@ def send_otp_email(to_email, otp_code):
         return True  # Allow in dev mode
 
     try:
-        msg = MIMEMultipart()
-        msg['From'] = SMTP_EMAIL
-        msg['To'] = to_email
-        msg['Subject'] = 'Parnasala Fellowship - Password Reset Code'
-
         body = f"""
         <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 2rem;">
             <div style="text-align: center; margin-bottom: 1.5rem;">
@@ -363,6 +360,31 @@ def send_otp_email(to_email, otp_code):
         </div>
         """
 
+        php_mailer_url = os.environ.get('PHP_MAILER_URL')
+        if php_mailer_url:
+            import urllib.request
+            import urllib.parse
+            
+            data = urllib.parse.urlencode({
+                'to': to_email,
+                'subject': 'Parnasala Fellowship - Password Reset Code',
+                'body': body,
+                'secret': os.environ.get('PHP_MAILER_SECRET', 'Parnasala@SecureEmailToken2026')
+            }).encode('utf-8')
+            
+            req = urllib.request.Request(php_mailer_url, data=data)
+            with urllib.request.urlopen(req) as response:
+                result = json.loads(response.read().decode('utf-8'))
+                if result.get('success'):
+                    return True
+                else:
+                    print(f"  ❌ PHP Mailer failed: {result}")
+                    return False
+
+        msg = MIMEMultipart()
+        msg['From'] = SMTP_EMAIL
+        msg['To'] = to_email
+        msg['Subject'] = 'Parnasala Fellowship - Password Reset Code'
         msg.attach(MIMEText(body, 'html'))
 
         server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
@@ -726,8 +748,12 @@ def upload_image():
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     filename = f"img_{timestamp}.{ext}"
 
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    file.save(filepath)
+    if CLOUDINARY_URL:
+        upload_result = cloudinary.uploader.upload(file)
+        filename = upload_result.get('secure_url')
+    else:
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(filepath)
 
     conn = get_db()
     conn.execute(
@@ -746,9 +772,13 @@ def delete_image(image_id):
     conn = get_db()
     img = conn.execute("SELECT * FROM images WHERE id = ?", (image_id,)).fetchone()
     if img:
-        filepath = os.path.join(UPLOAD_FOLDER, img['filename'])
-        if os.path.exists(filepath):
-            os.remove(filepath)
+        if img['filename'].startswith('http'):
+            # Cloudinary URL, skip local deletion (we could call uploader.destroy but won't strictly enforce it here for simplicity)
+            pass
+        else:
+            filepath = os.path.join(UPLOAD_FOLDER, img['filename'])
+            if os.path.exists(filepath):
+                os.remove(filepath)
         conn.execute("DELETE FROM images WHERE id = ?", (image_id,))
         conn.commit()
     conn.close()
@@ -767,17 +797,22 @@ def upload_logo():
     if not file.filename or not allowed_file(file.filename, ALLOWED_IMAGE_EXTENSIONS):
         return jsonify({'error': 'Invalid image type'}), 400
 
-    ext = file.filename.rsplit('.', 1)[1].lower()
-    filename = f"logo.{ext}"
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    file.save(filepath)
+    if CLOUDINARY_URL:
+        upload_result = cloudinary.uploader.upload(file)
+        logo_url = upload_result.get('secure_url')
+    else:
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        filename = f"logo.{ext}"
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(filepath)
+        logo_url = f"/uploads/{filename}"
 
     conn = get_db()
-    conn.execute("UPDATE settings SET logo_url = ? WHERE id = 1", (f"/uploads/{filename}",))
+    conn.execute("UPDATE settings SET logo_url = ? WHERE id = 1", (logo_url,))
     conn.commit()
     conn.close()
 
-    return jsonify({'message': 'Logo updated', 'logo_url': f"/uploads/{filename}"})
+    return jsonify({'message': 'Logo updated', 'logo_url': logo_url})
 
 
 # ── Admin: Settings ──────────────────────────────────────────────────────────
@@ -829,7 +864,7 @@ def add_category():
     try:
         conn.execute("INSERT INTO categories (name) VALUES (?)", (name,))
         conn.commit()
-    except sqlite3.IntegrityError:
+    except Exception:
         conn.close()
         return jsonify({'error': 'Category already exists'}), 409
     conn.close()
@@ -866,12 +901,16 @@ def add_article():
         if 'pdf_file' in request.files:
             pdf_file = request.files['pdf_file']
             if pdf_file.filename and allowed_file(pdf_file.filename, ALLOWED_PDF_EXTENSIONS):
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                unique_id = uuid.uuid4().hex[:6]
-                pdf_filename = f"article_{timestamp}_{unique_id}.pdf"
-                pdf_path = os.path.join(UPLOAD_FOLDER, pdf_filename)
-                pdf_file.save(pdf_path)
-                pdf_url = f"/uploads/{pdf_filename}"
+                if CLOUDINARY_URL:
+                    upload_result = cloudinary.uploader.upload(pdf_file, resource_type='raw')
+                    pdf_url = upload_result.get('secure_url')
+                else:
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    unique_id = uuid.uuid4().hex[:6]
+                    pdf_filename = f"article_{timestamp}_{unique_id}.pdf"
+                    pdf_path = os.path.join(UPLOAD_FOLDER, pdf_filename)
+                    pdf_file.save(pdf_path)
+                    pdf_url = f"/uploads/{pdf_filename}"
     else:
         data = request.get_json()
         if not data:
@@ -927,22 +966,27 @@ def edit_article(article_id):
         if 'pdf_file' in request.files:
             pdf_file = request.files['pdf_file']
             if pdf_file.filename and allowed_file(pdf_file.filename, ALLOWED_PDF_EXTENSIONS):
-                # Delete old PDF if exists
-                if article['pdf_url']:
+                # Delete old PDF if exists (assuming local)
+                if article['pdf_url'] and not article['pdf_url'].startswith('http'):
                     old_pdf = article['pdf_url'].replace('/uploads/', '')
                     old_path = os.path.join(UPLOAD_FOLDER, old_pdf)
                     if os.path.exists(old_path):
                         os.remove(old_path)
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                unique_id = uuid.uuid4().hex[:6]
-                pdf_filename = f"article_{timestamp}_{unique_id}.pdf"
-                pdf_path = os.path.join(UPLOAD_FOLDER, pdf_filename)
-                pdf_file.save(pdf_path)
-                pdf_url = f"/uploads/{pdf_filename}"
+                
+                if CLOUDINARY_URL:
+                    upload_result = cloudinary.uploader.upload(pdf_file, resource_type='raw')
+                    pdf_url = upload_result.get('secure_url')
+                else:
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    unique_id = uuid.uuid4().hex[:6]
+                    pdf_filename = f"article_{timestamp}_{unique_id}.pdf"
+                    pdf_path = os.path.join(UPLOAD_FOLDER, pdf_filename)
+                    pdf_file.save(pdf_path)
+                    pdf_url = f"/uploads/{pdf_filename}"
 
         # Check if user wants to remove PDF
         if request.form.get('remove_pdf') == '1':
-            if article['pdf_url']:
+            if article['pdf_url'] and not article['pdf_url'].startswith('http'):
                 old_pdf = article['pdf_url'].replace('/uploads/', '')
                 old_path = os.path.join(UPLOAD_FOLDER, old_pdf)
                 if os.path.exists(old_path):
