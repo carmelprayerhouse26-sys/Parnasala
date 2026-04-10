@@ -770,8 +770,8 @@ def add_song():
         counter += 1
 
     conn.execute(
-        "INSERT INTO songs (title_te, title_en, lyrics, category, slug) VALUES (?, ?, ?, ?, ?)",
-        (title_te, title_en, lyrics, category, slug)
+        "INSERT INTO songs (title, title_te, title_en, lyrics, category, slug) VALUES (?, ?, ?, ?, ?, ?)",
+        (title_en, title_te, title_en, lyrics, category, slug)
     )
     conn.commit()
     conn.close()
@@ -814,8 +814,8 @@ def edit_song(song_id):
             counter += 1
 
     conn.execute(
-        "UPDATE songs SET title_te=?, title_en=?, lyrics=?, category=?, slug=? WHERE id=?",
-        (title_te, title_en, lyrics, category, slug, song_id)
+        "UPDATE songs SET title=?, title_te=?, title_en=?, lyrics=?, category=?, slug=? WHERE id=?",
+        (title_en, title_te, title_en, lyrics, category, slug, song_id)
     )
     conn.commit()
     conn.close()
@@ -916,8 +916,8 @@ def upload_songs():
             counter += 1
 
         conn.execute(
-            "INSERT INTO songs (title, lyrics, category, slug) VALUES (?, ?, ?, ?)",
-            (title, lyrics, category, slug)
+            "INSERT INTO songs (title, title_te, title_en, lyrics, category, slug) VALUES (?, ?, ?, ?, ?, ?)",
+            (title, title, title, lyrics, category, slug)
         )
 
         # Auto-add category if it doesn't exist
