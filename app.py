@@ -455,17 +455,6 @@ def get_settings():
     return jsonify(data)
 
 
-# ── Public API: Categories ───────────────────────────────────────────────────
-
-@app.route('/api/categories')
-def get_categories():
-    """List all categories."""
-    conn = get_db()
-    rows = conn.execute("SELECT name FROM categories ORDER BY name ASC").fetchall()
-    conn.close()
-    return jsonify([dict(r) for r in rows])
-
-
 # ── Public API: Articles ─────────────────────────────────────────────────────
 
 @app.route('/api/articles')
