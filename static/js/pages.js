@@ -299,9 +299,9 @@ async function renderSongsPage() {
         console.error('Failed to load Telugu words:', err);
     }
 
-    // Load Telugu and English Character Indexes
-    let teluguChars = [];
-    let englishChars = [];
+    // Full static alphabet sets for grids
+    const teluguAlphabet = ["అ", "ఆ", "ఇ", "ఈ", "ఉ", "ఊ", "ఋ", "ఎ", "ఏ", "ఐ", "ఒ", "ఓ", "ఔ", "అం", "అః", "క", "ఖ", "గ", "ఘ", "ఙ", "చ", "ఛ", "జ", "ఝ", "ఞ", "ట", "ఠ", "డ", "ఢ", "ణ", "త", "థ", "ద", "ధ", "న", "ప", "ఫ", "బ", "భ", "మ", "య", "ర", "ల", "వ", "శ", "ష", "స", "హ", "ళ", "క్ష", "ఱ"];
+    const englishAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
 
     const charGridContainer = $('#character-grid-container');
     const selectedCharHeader = $('#selected-char-header');
@@ -324,11 +324,11 @@ async function renderSongsPage() {
             } else if (tab === 'telugu') {
                 homeContent.style.display = 'none';
                 indexContent.style.display = 'block';
-                renderCharacterGrid(teluguChars, 'telugu');
+                renderCharacterGrid(teluguAlphabet, 'telugu');
             } else if (tab === 'english') {
                 homeContent.style.display = 'none';
                 indexContent.style.display = 'block';
-                renderCharacterGrid(englishChars, 'english');
+                renderCharacterGrid(englishAlphabet, 'english');
             }
         });
     });
@@ -337,19 +337,14 @@ async function renderSongsPage() {
         indexResultsContainer.style.display = 'none';
         charGridContainer.innerHTML = '';
         
-        if (!chars || chars.length === 0) {
-            charGridContainer.innerHTML = '<p style="color: var(--text-secondary); border: none;">No characters found</p>';
-            return;
-        }
-
-        chars.forEach(item => {
+        chars.forEach(char => {
             const btn = document.createElement('button');
             btn.className = 'char-btn';
-            btn.textContent = item.character;
+            btn.textContent = char;
             btn.addEventListener('click', () => {
                 $$('.char-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                loadGroupedSongs(item.character, langType);
+                loadGroupedSongs(char, langType);
             });
             charGridContainer.appendChild(btn);
         });
@@ -387,13 +382,7 @@ async function renderSongsPage() {
         }
     }
 
-    try {
-        teluguChars = await api('/api/telugu-char-index') || [];
-    } catch (err) {}
-
-    try {
-        englishChars = await api('/api/english-char-index') || [];
-    } catch (err) {}
+    // No need to load character indexes dynamically since we are using static grids
 
     // Load songs
     await loadSongs();
