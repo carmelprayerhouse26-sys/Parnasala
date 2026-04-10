@@ -709,7 +709,10 @@ def add_song():
         return jsonify({'error': 'Title and lyrics are required'}), 400
 
     title = data['title'].strip()
+    title_te = data.get('title_te', '').strip()
+    title_en = data.get('title_en', '').strip() or title  # Default to title if not provided
     lyrics = data['lyrics'].strip()
+    lyrics_en = data.get('lyrics_en', '').strip()
     category = data.get('category', 'General').strip()
     slug = slugify(title)
 
@@ -724,8 +727,8 @@ def add_song():
         counter += 1
 
     conn.execute(
-        "INSERT INTO songs (title, lyrics, category, slug) VALUES (?, ?, ?, ?)",
-        (title, lyrics, category, slug)
+        "INSERT INTO songs (title, title_te, title_en, lyrics, lyrics_en, category, slug) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (title, title_te, title_en, lyrics, lyrics_en, category, slug)
     )
     conn.commit()
     conn.close()
@@ -747,7 +750,10 @@ def edit_song(song_id):
         return jsonify({'error': 'Song not found'}), 404
 
     title = data.get('title', song['title']).strip()
+    title_te = data.get('title_te', song.get('title_te', '')).strip()
+    title_en = data.get('title_en', song.get('title_en', '')).strip() or title
     lyrics = data.get('lyrics', song['lyrics']).strip()
+    lyrics_en = data.get('lyrics_en', song.get('lyrics_en', '')).strip()
     category = data.get('category', song['category']).strip()
 
     # Regenerate slug if title changed
@@ -767,8 +773,8 @@ def edit_song(song_id):
             counter += 1
 
     conn.execute(
-        "UPDATE songs SET title=?, lyrics=?, category=?, slug=? WHERE id=?",
-        (title, lyrics, category, slug, song_id)
+        "UPDATE songs SET title=?, title_te=?, title_en=?, lyrics=?, lyrics_en=?, category=?, slug=? WHERE id=?",
+        (title, title_te, title_en, lyrics, lyrics_en, category, slug, song_id)
     )
     conn.commit()
     conn.close()

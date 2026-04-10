@@ -507,19 +507,31 @@ async function openEditSong(songId) {
         const body = `
             <form id="edit-song-form">
                 <div class="form-group">
-                    <label class="form-label">${t('admin_song_title')}</label>
+                    <label class="form-label">${t('admin_song_title')} (English or Transliteration)</label>
                     <input type="text" class="form-input" id="edit-title" value="${escapeHtml(song.title)}" required>
                 </div>
                 <div class="form-group">
+                    <label class="form-label">Song Title in Telugu</label>
+                    <input type="text" class="form-input" id="edit-title-te" value="${escapeHtml(song.title_te || '')}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Song Title in English (if different)</label>
+                    <input type="text" class="form-input" id="edit-title-en" value="${escapeHtml(song.title_en || '')}">
+                </div>
+                <div class="form-group">
                     <label class="form-label">${t('admin_song_category')}</label>
-                    <select class="form-select" id="edit-category">
+                    <select class="form-select" id="edit-category" required>
                         ${catOptions}
                         <option value="General" ${!categories.find(c => c.name === song.category) ? 'selected' : ''}>General</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">${t('admin_song_lyrics')}</label>
+                    <label class="form-label">${t('admin_song_lyrics')} (Original Language)</label>
                     <textarea class="form-textarea" id="edit-lyrics" rows="10" required>${escapeHtml(song.lyrics)}</textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">English Translation (for understanding the meaning)</label>
+                    <textarea class="form-textarea" id="edit-lyrics-en" rows="10">${escapeHtml(song.lyrics_en || '')}</textarea>
                 </div>
                 <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
                     <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal()">${t('admin_cancel')}</button>
@@ -543,7 +555,10 @@ async function openEditSong(songId) {
                             method: 'PUT',
                             body: {
                                 title: $('#edit-title').value.trim(),
+                                title_te: $('#edit-title-te').value.trim(),
+                                title_en: $('#edit-title-en').value.trim(),
                                 lyrics: $('#edit-lyrics').value.trim(),
+                                lyrics_en: $('#edit-lyrics-en').value.trim(),
                                 category: $('#edit-category').value
                             }
                         });
@@ -592,20 +607,34 @@ async function renderAddSongForm(container) {
             </h3>
             <form id="add-song-form">
                 <div class="form-group">
-                    <label class="form-label">${t('admin_song_title')}</label>
-                    <input type="text" class="form-input" id="add-title" required placeholder="Enter song title">
+                    <label class="form-label">${t('admin_song_title')} (English or Transliteration)</label>
+                    <input type="text" class="form-input" id="add-title" required placeholder="e.g., Yesu Naamam or Amazing Grace">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Song Title in Telugu</label>
+                    <input type="text" class="form-input" id="add-title-te" placeholder="e.g., యేసు నామం (optional)">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Song Title in English (if different)</label>
+                    <input type="text" class="form-input" id="add-title-en" placeholder="Same as first field if left empty">
                 </div>
                 <div class="form-group">
                     <label class="form-label">${t('admin_song_category')}</label>
-                    <select class="form-select" id="add-category">
+                    <select class="form-select" id="add-category" required>
+                        <option value="">Select a category...</option>
                         ${catOptions}
                         <option value="General">General</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">${t('admin_song_lyrics')}</label>
-                    <textarea class="form-textarea" id="add-lyrics" rows="12" required
+                    <label class="form-label">${t('admin_song_lyrics')} (Original Language)</label>
+                    <textarea class="form-textarea" id="add-lyrics" rows="10" required
                               placeholder="Enter song lyrics&#10;&#10;Use blank lines to separate verses"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">English Translation (for understanding the meaning)</label>
+                    <textarea class="form-textarea" id="add-lyrics-en" rows="10" 
+                              placeholder="Enter English translation of the lyrics (optional)"></textarea>
                 </div>
                 <div id="add-song-message"></div>
                 <button type="submit" class="btn btn-primary" id="add-song-btn">
@@ -623,12 +652,26 @@ async function renderAddSongForm(container) {
         btn.disabled = true;
 
         try {
+            const title = $('#add-title').value.trim();
+            const titleTe = $('#add-title-te').value.trim();
+            const titleEn = $('#add-title-en').value.trim() || title; // Use title if English not provided
+            const lyrics = $('#add-lyrics').value.trim();
+            const lyricsEn = $('#add-lyrics-en').value.trim();
+            const category = $('#add-category').value;
+
+            if (!category) {
+                throw new Error('Please select a category');
+            }
+
             await api('/api/admin/songs', {
                 method: 'POST',
                 body: {
-                    title: $('#add-title').value.trim(),
-                    lyrics: $('#add-lyrics').value.trim(),
-                    category: $('#add-category').value
+                    title: title,
+                    title_te: titleTe,
+                    title_en: titleEn,
+                    lyrics: lyrics,
+                    lyrics_en: lyricsEn,
+                    category: category
                 }
             });
             showToast('Song added successfully!', 'success');
