@@ -195,6 +195,22 @@ async function renderSongsPage() {
                         </div>
                     </div>
 
+                    <!-- Telugu Words Filter Section -->
+                    <div style="margin-bottom: 2rem;">
+                        <h3 style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">Filter by Telugu Words</h3>
+                        <div class="telugu-words-pills" id="telugu-words-pills" style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                            <!-- Loaded by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Telugu Character Index -->
+                    <div style="margin-bottom: 2rem;">
+                        <h3 style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">Filter by Character</h3>
+                        <div class="telugu-character-index" id="telugu-character-index" style="display: flex; flex-wrap: wrap; gap: 0.5rem; font-family: 'Noto Sans Telugu', sans-serif;">
+                            <!-- Loaded by JS -->
+                        </div>
+                    </div>
+
                     <div id="songs-container">
                         ${SkeletonCards(9)}
                     </div>
@@ -231,6 +247,86 @@ async function renderSongsPage() {
         }
     } catch { /* ignore */ }
 
+    // Load Telugu words for filter pills
+    try {
+        const teluguWords = await api('/api/telugu-words');
+        const teluguWordsContainer = $('#telugu-words-pills');
+        
+        if (teluguWords && teluguWords.length > 0) {
+            // Add "All Words" button
+            const allBtn = document.createElement('button');
+            allBtn.className = 'pill active';
+            allBtn.dataset.telugu_word = '';
+            allBtn.style.fontFamily = 'Inter, sans-serif';
+            allBtn.textContent = 'All Words';
+            allBtn.addEventListener('click', () => {
+                $$('.pill', teluguWordsContainer).forEach(p => p.classList.remove('active'));
+                allBtn.classList.add('active');
+                loadSongs();
+            });
+            teluguWordsContainer.appendChild(allBtn);
+
+            // Add Telugu word buttons
+            teluguWords.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = 'pill';
+                btn.dataset.telugu_word = item.word;
+                btn.style.fontFamily = 'Noto Sans Telugu, sans-serif';
+                btn.innerHTML = `${escapeHtml(item.word)} <span style="margin-left: 0.5rem; opacity: 0.7; font-size: 0.85em;">(${item.count})</span>`;
+                btn.addEventListener('click', () => {
+                    $$('.pill', teluguWordsContainer).forEach(p => p.classList.remove('active'));
+                    btn.classList.add('active');
+                    loadSongs();
+                });
+                teluguWordsContainer.appendChild(btn);
+            });
+        } else {
+            teluguWordsContainer.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.9rem;">No Telugu songs found</p>';
+        }
+    } catch (err) {
+        console.error('Failed to load Telugu words:', err);
+    }
+
+    // Load Telugu Character Index
+    try {
+        const teluguCharIndex = await api('/api/telugu-char-index');
+        const charIndexContainer = $('#telugu-character-index');
+        
+        if (teluguCharIndex && teluguCharIndex.length > 0) {
+            // Add "All" button
+            const allBtn = document.createElement('button');
+            allBtn.className = 'pill active';
+            allBtn.dataset.telugu_char = '';
+            allBtn.style.fontFamily = 'Inter, sans-serif';
+            allBtn.style.fontSize = '0.9rem';
+            allBtn.textContent = 'All';
+            allBtn.addEventListener('click', () => {
+                $$('.pill', charIndexContainer).forEach(p => p.classList.remove('active'));
+                allBtn.classList.add('active');
+                loadSongs();
+            });
+            charIndexContainer.appendChild(allBtn);
+
+            // Add Telugu characters
+            teluguCharIndex.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = 'pill';
+                btn.dataset.telugu_char = item.character;
+                btn.style.fontFamily = 'Noto Sans Telugu, sans-serif';
+                btn.style.fontSize = '1.1rem';
+                btn.innerHTML = `${escapeHtml(item.character)} <span style="margin-left: 0.25rem; opacity: 0.6; font-size: 0.7em;">${item.count}</span>`;
+                btn.addEventListener('click', () => {
+                    $$('.pill', charIndexContainer).forEach(p => p.classList.remove('active'));
+                    btn.classList.add('active');
+                    loadSongs();
+                });
+                charIndexContainer.appendChild(btn);
+            });
+        }
+    } catch (err) {
+        console.error('Failed to load Telugu character index:', err);
+    }
+
     // Load songs
     await loadSongs();
 
@@ -243,17 +339,33 @@ async function renderSongsPage() {
     setLanguage(currentLang);
 }
 
+
 async function loadSongs() {
     const container = $('#songs-container');
     if (!container) return;
 
     const search = ($('#song-search') || {}).value || '';
-    const activePill = $('.pill.active');
-    const category = activePill ? activePill.dataset.category || '' : '';
+    
+    // Get category from category pills
+    const categoryContainer = $('#category-pills');
+    const activeCategoryPill = categoryContainer ? categoryContainer.querySelector('.pill.active') : null;
+    const category = activeCategoryPill ? activeCategoryPill.dataset.category || '' : '';
+
+    // Get Telugu word from Telugu words pills
+    const teluguWordsContainer = $('#telugu-words-pills');
+    const activeTeluguPill = teluguWordsContainer ? teluguWordsContainer.querySelector('.pill.active') : null;
+    const teluguWord = activeTeluguPill ? activeTeluguPill.dataset.telugu_word || '' : '';
+
+    // Get Telugu character from character index
+    const charIndexContainer = $('#telugu-character-index');
+    const activeCharPill = charIndexContainer ? charIndexContainer.querySelector('.pill.active') : null;
+    const teluguChar = activeCharPill ? activeCharPill.dataset.telugu_char || '' : '';
 
     let url = '/api/songs?';
     if (search) url += `search=${encodeURIComponent(search)}&`;
     if (category) url += `category=${encodeURIComponent(category)}&`;
+    if (teluguWord) url += `telugu_word=${encodeURIComponent(teluguWord)}&`;
+    if (teluguChar) url += `telugu_char=${encodeURIComponent(teluguChar)}&`;
 
     try {
         const songs = await api(url);

@@ -65,7 +65,10 @@ def init_db():
         CREATE TABLE IF NOT EXISTS songs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
+            title_te TEXT DEFAULT '',
+            title_en TEXT DEFAULT '',
             lyrics TEXT NOT NULL,
+            lyrics_en TEXT DEFAULT '',
             category TEXT DEFAULT 'General',
             slug TEXT UNIQUE NOT NULL,
             created_at TEXT DEFAULT (datetime('now'))
@@ -129,6 +132,24 @@ def init_db():
     except Exception:
         conn.execute("ALTER TABLE articles ADD COLUMN pdf_url TEXT DEFAULT ''")
 
+    # Migration: Add title_te column to songs if it doesn't exist
+    try:
+        conn.execute("SELECT title_te FROM songs LIMIT 1")
+    except Exception:
+        conn.execute("ALTER TABLE songs ADD COLUMN title_te TEXT DEFAULT ''")
+
+    # Migration: Add title_en column to songs if it doesn't exist
+    try:
+        conn.execute("SELECT title_en FROM songs LIMIT 1")
+    except Exception:
+        conn.execute("ALTER TABLE songs ADD COLUMN title_en TEXT DEFAULT ''")
+
+    # Migration: Add lyrics_en column to songs if it doesn't exist
+    try:
+        conn.execute("SELECT lyrics_en FROM songs LIMIT 1")
+    except Exception:
+        conn.execute("ALTER TABLE songs ADD COLUMN lyrics_en TEXT DEFAULT ''")
+
     conn.commit()
     conn.close()
 
@@ -145,6 +166,35 @@ def slugify(text):
 def allowed_file(filename, allowed):
     """Check if file extension is allowed."""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed
+
+
+def extract_telugu_word(text):
+    """Extract the first Telugu word from text."""
+    if not text:
+        return None
+    # Split by spaces and get the first word
+    words = text.strip().split()
+    if words:
+        return words[0]
+    return None
+
+
+def is_telugu_char(char):
+    """Check if character is Telugu Unicode."""
+    code = ord(char)
+    # Telugu Unicode range: 0x0C00 - 0x0C7F
+    return 0x0C00 <= code <= 0x0C7F
+
+
+def get_first_telugu_word(text):
+    """Extract first word that contains Telugu characters."""
+    if not text:
+        return None
+    words = text.strip().split()
+    for word in words:
+        if any(is_telugu_char(char) for char in word):
+            return word
+    return None
 
 
 # ── Auth Decorator ───────────────────────────────────────────────────────────
@@ -175,17 +225,21 @@ def serve_upload(filename):
 
 @app.route('/api/songs')
 def get_songs():
-    """List songs with optional search & category filter."""
+    """List songs with optional search, category, Telugu word, and Telugu character filter."""
     search = request.args.get('search', '').strip()
     category = request.args.get('category', '').strip()
+    telugu_word = request.args.get('telugu_word', '').strip()
+    telugu_char = request.args.get('telugu_char', '').strip()
 
     conn = get_db()
     query = "SELECT * FROM songs WHERE 1=1"
     params = []
 
     if search:
-        query += " AND (title LIKE ? OR lyrics LIKE ?)"
-        params.extend([f'%{search}%', f'%{search}%'])
+        # Search in title (English), title_en, title_te (Telugu), and lyrics
+        query += " AND (title LIKE ? OR title_en LIKE ? OR title_te LIKE ? OR lyrics LIKE ?)"
+        search_term = f'%{search}%'
+        params.extend([search_term, search_term, search_term, search_term])
     if category:
         query += " AND category = ?"
         params.append(category)
@@ -195,6 +249,29 @@ def get_songs():
     conn.close()
 
     songs = [dict(r) for r in rows]
+    
+    # Filter by Telugu word if specified
+    if telugu_word:
+        filtered_songs = []
+        for song in songs:
+            # Check if title_te starts with the Telugu word
+            song_title_te = song.get('title_te', '')
+            if song_title_te:
+                first_word = get_first_telugu_word(song_title_te)
+                if first_word and first_word.lower().startswith(telugu_word.lower()):
+                    filtered_songs.append(song)
+        songs = filtered_songs
+    
+    # Filter by Telugu character if specified
+    if telugu_char:
+        filtered_songs = []
+        for song in songs:
+            # Check if title_te starts with the Telugu character
+            song_title_te = song.get('title_te', '')
+            if song_title_te and song_title_te[0] == telugu_char:
+                filtered_songs.append(song)
+        songs = filtered_songs
+    
     return jsonify(songs)
 
 
@@ -218,6 +295,81 @@ def get_categories():
     rows = conn.execute("SELECT * FROM categories ORDER BY name ASC").fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
+
+
+# ── Public API: Telugu Words ────────────────────────────────────────────────
+
+@app.route('/api/telugu-words')
+def get_telugu_words():
+    """Get all unique Telugu words that start songs, with song counts."""
+    conn = get_db()
+    rows = conn.execute("SELECT title_te FROM songs ORDER BY title_te ASC").fetchall()
+    conn.close()
+
+    # Dictionary to store unique Telugu words and their song counts
+    telugu_words = {}
+    
+    for row in rows:
+        title_te = row['title_te'] if isinstance(row, dict) else row[0]
+        if not title_te:
+            continue
+            
+        first_word = get_first_telugu_word(title_te)
+        
+        if first_word:
+            # Normalize the word for grouping
+            normalized_word = first_word.lower()
+            if normalized_word not in telugu_words:
+                telugu_words[normalized_word] = {
+                    'word': first_word,
+                    'count': 0
+                }
+            telugu_words[normalized_word]['count'] += 1
+    
+    # Convert to sorted list
+    result = sorted(
+        telugu_words.values(),
+        key=lambda x: x['word']  # Sort by Telugu word
+    )
+    
+    return jsonify(result)
+
+
+# ── Public API: Telugu Character Index ──────────────────────────────────────
+
+@app.route('/api/telugu-char-index')
+def get_telugu_char_index():
+    """Get all unique Telugu characters that start songs, with song counts."""
+    conn = get_db()
+    rows = conn.execute("SELECT title_te FROM songs ORDER BY title_te ASC").fetchall()
+    conn.close()
+
+    # Dictionary to store unique Telugu characters and their song counts
+    telugu_chars = {}
+    
+    for row in rows:
+        title_te = row['title_te'] if isinstance(row, dict) else row[0]
+        if not title_te:
+            continue
+        
+        # Get first character
+        first_char = title_te[0] if title_te else None
+        
+        if first_char and is_telugu_char(first_char):
+            if first_char not in telugu_chars:
+                telugu_chars[first_char] = {
+                    'character': first_char,
+                    'count': 0
+                }
+            telugu_chars[first_char]['count'] += 1
+    
+    # Convert to sorted list (by Unicode value of character)
+    result = sorted(
+        telugu_chars.values(),
+        key=lambda x: ord(x['character'])  # Sort by character Unicode
+    )
+    
+    return jsonify(result)
 
 
 # ── Public API: Settings ─────────────────────────────────────────────────────
