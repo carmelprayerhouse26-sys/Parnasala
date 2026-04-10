@@ -22,7 +22,10 @@ def seed():
         CREATE TABLE IF NOT EXISTS songs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
+            title_te TEXT DEFAULT '',
+            title_en TEXT DEFAULT '',
             lyrics TEXT NOT NULL,
+            lyrics_en TEXT DEFAULT '',
             category TEXT DEFAULT 'General',
             slug TEXT UNIQUE NOT NULL,
             created_at TEXT DEFAULT (datetime('now'))
