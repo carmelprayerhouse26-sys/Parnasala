@@ -395,7 +395,42 @@ async function renderSongsPage() {
 
     setLanguage(currentLang);
 }
+// ── Search Logic Helpers ──────────────────────────────────────────────────────
 
+function normalizeStr(text) {
+    if (!text) return "";
+    return text.toLowerCase().normalize("NFC");
+}
+
+function getFirstWord(title) {
+    if (!title) return "";
+    return title.trim().split(/\s+/)[0];
+}
+
+function searchSongs(query, songs) {
+    if (!query) return songs;
+    query = normalizeStr(query).trim();
+
+    let firstMatches = [];
+    let otherMatches = [];
+
+    songs.forEach(song => {
+        const titleEn = normalizeStr(song.title_en || song.title || '');
+        const titleTe = normalizeStr(song.title_te || '');
+        const lyrics = normalizeStr(song.lyrics || '');
+        
+        const firstWordEn = getFirstWord(titleEn);
+        const firstWordTe = getFirstWord(titleTe);
+
+        if (firstWordEn.startsWith(query) || firstWordTe.startsWith(query)) {
+            firstMatches.push(song);
+        } else if (titleEn.includes(query) || titleTe.includes(query) || lyrics.includes(query)) {
+            otherMatches.push(song);
+        }
+    });
+
+    return [...firstMatches, ...otherMatches];
+}
 
 async function loadSongs() {
     const container = $('#songs-container');
@@ -414,12 +449,17 @@ async function loadSongs() {
     const teluguWord = activeTeluguPill ? activeTeluguPill.dataset.telugu_word || '' : '';
 
     let url = '/api/songs?';
-    if (search) url += `search=${encodeURIComponent(search)}&`;
     if (category) url += `category=${encodeURIComponent(category)}&`;
     if (teluguWord) url += `telugu_word=${encodeURIComponent(teluguWord)}&`;
 
     try {
-        const songs = await api(url);
+        let songs = await api(url);
+        
+        // Apply robust client-side first-word-priority search if user is typing
+        if (search) {
+            songs = searchSongs(search, songs);
+        }
+        
         if (songs.length > 0) {
             container.innerHTML = `<div class="songs-grid">${songs.map((s, i) => SongCard(s, i)).join('')}</div>`;
             setTimeout(observeAnimations, 50);
