@@ -230,6 +230,7 @@ def get_songs():
     category = request.args.get('category', '').strip()
     telugu_word = request.args.get('telugu_word', '').strip()
     telugu_char = request.args.get('telugu_char', '').strip()
+    english_char = request.args.get('english_char', '').strip().upper()
 
     conn = get_db()
     query = "SELECT * FROM songs WHERE 1=1"
@@ -269,6 +270,15 @@ def get_songs():
             # Check if title_te starts with the Telugu character
             song_title_te = song.get('title_te', '')
             if song_title_te and song_title_te[0] == telugu_char:
+                filtered_songs.append(song)
+        songs = filtered_songs
+    
+    # Filter by English character if specified
+    if english_char:
+        filtered_songs = []
+        for song in songs:
+            song_title_en = song.get('title_en', '')
+            if song_title_en and song_title_en[0].upper() == english_char:
                 filtered_songs.append(song)
         songs = filtered_songs
     
@@ -367,6 +377,41 @@ def get_telugu_char_index():
     result = sorted(
         telugu_chars.values(),
         key=lambda x: ord(x['character'])  # Sort by character Unicode
+    )
+    
+    return jsonify(result)
+
+
+# ── Public API: English Character Index ──────────────────────────────────────
+
+@app.route('/api/english-char-index')
+def get_english_char_index():
+    """Get all unique English characters that start songs, with song counts."""
+    conn = get_db()
+    rows = conn.execute("SELECT title_en FROM songs ORDER BY title_en ASC").fetchall()
+    conn.close()
+
+    english_chars = {}
+    
+    for row in rows:
+        title_en = row['title_en'] if isinstance(row, dict) else row[0]
+        if not title_en:
+            continue
+        
+        # Get first character and uppercase it
+        first_char = title_en[0].upper()
+        
+        if first_char.isalpha():
+            if first_char not in english_chars:
+                english_chars[first_char] = {
+                    'character': first_char,
+                    'count': 0
+                }
+            english_chars[first_char]['count'] += 1
+            
+    result = sorted(
+        english_chars.values(),
+        key=lambda x: x['character']
     )
     
     return jsonify(result)

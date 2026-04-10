@@ -183,36 +183,48 @@ async function renderSongsPage() {
                 <div class="container">
                     ${SectionHeader(t('songs_tag'), 'songs_tag', t('songs_title'), 'songs_title', t('songs_subtitle'), 'songs_subtitle')}
 
-                    <div class="search-filter-bar">
-                        <div class="search-wrapper">
-                            <span class="material-icons-round search-icon">search</span>
-                            <input type="text" class="search-input" id="song-search"
-                                   placeholder="${t('songs_search_placeholder')}"
-                                   data-i18n-placeholder="songs_search_placeholder">
+                    <!-- Tabs -->
+                    <div class="index-tabs" id="index-tabs">
+                        <button class="index-tab-btn active" data-tab="home" data-i18n="nav_home">Home</button>
+                        <button class="index-tab-btn" data-tab="telugu">Telugu Index</button>
+                        <button class="index-tab-btn" data-tab="english">English Index</button>
+                    </div>
+
+                    <div id="home-tab-content">
+                        <div class="search-filter-bar">
+                            <div class="search-wrapper">
+                                <span class="material-icons-round search-icon">search</span>
+                                <input type="text" class="search-input" id="song-search"
+                                       placeholder="${t('songs_search_placeholder')}"
+                                       data-i18n-placeholder="songs_search_placeholder">
+                            </div>
+                            <div class="category-pills" id="category-pills">
+                                <button class="pill active" data-category="" data-i18n="songs_all_categories">${t('songs_all_categories')}</button>
+                            </div>
                         </div>
-                        <div class="category-pills" id="category-pills">
-                            <button class="pill active" data-category="" data-i18n="songs_all_categories">${t('songs_all_categories')}</button>
+
+                        <!-- Telugu Words Filter Section -->
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">Filter by Telugu Words</h3>
+                            <div class="telugu-words-pills" id="telugu-words-pills" style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                                <!-- Loaded by JS -->
+                            </div>
+                        </div>
+
+                        <div id="songs-container">
+                            ${SkeletonCards(9)}
                         </div>
                     </div>
 
-                    <!-- Telugu Words Filter Section -->
-                    <div style="margin-bottom: 2rem;">
-                        <h3 style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">Filter by Telugu Words</h3>
-                        <div class="telugu-words-pills" id="telugu-words-pills" style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
-                            <!-- Loaded by JS -->
+                    <div id="index-tab-content" style="display: none;">
+                        <div class="character-grid" id="character-grid-container"></div>
+                        
+                        <div id="index-results-container" style="display: none;">
+                            <div class="char-section">
+                                <h3 class="char-section-header" id="selected-char-header"></h3>
+                                <div class="char-song-list" id="char-song-list-container"></div>
+                            </div>
                         </div>
-                    </div>
-
-                    <!-- Telugu Character Index -->
-                    <div style="margin-bottom: 2rem;">
-                        <h3 style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">Filter by Character</h3>
-                        <div class="telugu-character-index" id="telugu-character-index" style="display: flex; flex-wrap: wrap; gap: 0.5rem; font-family: 'Noto Sans Telugu', sans-serif;">
-                            <!-- Loaded by JS -->
-                        </div>
-                    </div>
-
-                    <div id="songs-container">
-                        ${SkeletonCards(9)}
                     </div>
                 </div>
             </section>
@@ -287,45 +299,101 @@ async function renderSongsPage() {
         console.error('Failed to load Telugu words:', err);
     }
 
-    // Load Telugu Character Index
-    try {
-        const teluguCharIndex = await api('/api/telugu-char-index');
-        const charIndexContainer = $('#telugu-character-index');
-        
-        if (teluguCharIndex && teluguCharIndex.length > 0) {
-            // Add "All" button
-            const allBtn = document.createElement('button');
-            allBtn.className = 'pill active';
-            allBtn.dataset.telugu_char = '';
-            allBtn.style.fontFamily = 'Inter, sans-serif';
-            allBtn.style.fontSize = '0.9rem';
-            allBtn.textContent = 'All';
-            allBtn.addEventListener('click', () => {
-                $$('.pill', charIndexContainer).forEach(p => p.classList.remove('active'));
-                allBtn.classList.add('active');
-                loadSongs();
-            });
-            charIndexContainer.appendChild(allBtn);
+    // Load Telugu and English Character Indexes
+    let teluguChars = [];
+    let englishChars = [];
 
-            // Add Telugu characters
-            teluguCharIndex.forEach(item => {
-                const btn = document.createElement('button');
-                btn.className = 'pill';
-                btn.dataset.telugu_char = item.character;
-                btn.style.fontFamily = 'Noto Sans Telugu, sans-serif';
-                btn.style.fontSize = '1.1rem';
-                btn.innerHTML = `${escapeHtml(item.character)} <span style="margin-left: 0.25rem; opacity: 0.6; font-size: 0.7em;">${item.count}</span>`;
-                btn.addEventListener('click', () => {
-                    $$('.pill', charIndexContainer).forEach(p => p.classList.remove('active'));
-                    btn.classList.add('active');
-                    loadSongs();
-                });
-                charIndexContainer.appendChild(btn);
-            });
+    const charGridContainer = $('#character-grid-container');
+    const selectedCharHeader = $('#selected-char-header');
+    const charSongList = $('#char-song-list-container');
+    const indexResultsContainer = $('#index-results-container');
+    
+    // UI Tab toggle logic
+    const homeContent = $('#home-tab-content');
+    const indexContent = $('#index-tab-content');
+
+    $$('.index-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            $$('.index-tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const tab = btn.dataset.tab;
+            if (tab === 'home') {
+                homeContent.style.display = 'block';
+                indexContent.style.display = 'none';
+            } else if (tab === 'telugu') {
+                homeContent.style.display = 'none';
+                indexContent.style.display = 'block';
+                renderCharacterGrid(teluguChars, 'telugu');
+            } else if (tab === 'english') {
+                homeContent.style.display = 'none';
+                indexContent.style.display = 'block';
+                renderCharacterGrid(englishChars, 'english');
+            }
+        });
+    });
+
+    function renderCharacterGrid(chars, langType) {
+        indexResultsContainer.style.display = 'none';
+        charGridContainer.innerHTML = '';
+        
+        if (!chars || chars.length === 0) {
+            charGridContainer.innerHTML = '<p style="color: var(--text-secondary); border: none;">No characters found</p>';
+            return;
         }
-    } catch (err) {
-        console.error('Failed to load Telugu character index:', err);
+
+        chars.forEach(item => {
+            const btn = document.createElement('button');
+            btn.className = 'char-btn';
+            btn.textContent = item.character;
+            btn.addEventListener('click', () => {
+                $$('.char-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                loadGroupedSongs(item.character, langType);
+            });
+            charGridContainer.appendChild(btn);
+        });
+
+        // Auto-select first character
+        if (chars.length > 0) {
+            const firstBtn = charGridContainer.querySelector('.char-btn');
+            if (firstBtn) firstBtn.click();
+        }
     }
+
+    async function loadGroupedSongs(character, langType) {
+        selectedCharHeader.textContent = character;
+        charSongList.innerHTML = '<div class="skeleton" style="height:30px; margin-bottom:10px;"></div><div class="skeleton" style="height:30px;"></div>';
+        indexResultsContainer.style.display = 'block';
+
+        let url = '/api/songs?';
+        if (langType === 'telugu') url += `telugu_char=${encodeURIComponent(character)}&`;
+        if (langType === 'english') url += `english_char=${encodeURIComponent(character)}&`;
+
+        try {
+            const songs = await api(url);
+            if (songs.length > 0) {
+                // Split grid into two columns if needed, but flex column is fine as per mockup
+                charSongList.innerHTML = songs.map(s => `
+                    <a href="#/songs/${s.slug}" class="char-song-item">
+                        ${escapeHtml(langType === 'telugu' && s.title_te ? s.title_te : s.title_en)}
+                    </a>
+                `).join('');
+            } else {
+                charSongList.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem;">No songs found</p>';
+            }
+        } catch {
+            charSongList.innerHTML = '<p style="color: #e74c3c;">Failed to load songs</p>';
+        }
+    }
+
+    try {
+        teluguChars = await api('/api/telugu-char-index') || [];
+    } catch (err) {}
+
+    try {
+        englishChars = await api('/api/english-char-index') || [];
+    } catch (err) {}
 
     // Load songs
     await loadSongs();
@@ -356,16 +424,10 @@ async function loadSongs() {
     const activeTeluguPill = teluguWordsContainer ? teluguWordsContainer.querySelector('.pill.active') : null;
     const teluguWord = activeTeluguPill ? activeTeluguPill.dataset.telugu_word || '' : '';
 
-    // Get Telugu character from character index
-    const charIndexContainer = $('#telugu-character-index');
-    const activeCharPill = charIndexContainer ? charIndexContainer.querySelector('.pill.active') : null;
-    const teluguChar = activeCharPill ? activeCharPill.dataset.telugu_char || '' : '';
-
     let url = '/api/songs?';
     if (search) url += `search=${encodeURIComponent(search)}&`;
     if (category) url += `category=${encodeURIComponent(category)}&`;
     if (teluguWord) url += `telugu_word=${encodeURIComponent(teluguWord)}&`;
-    if (teluguChar) url += `telugu_char=${encodeURIComponent(teluguChar)}&`;
 
     try {
         const songs = await api(url);

@@ -746,6 +746,103 @@ img {
     color: var(--accent);
 }
 
+/* ── Song Index Tabs & Grid ──────────────────────────────────────────────── */
+
+.index-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+.index-tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    font-weight: 500;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all var(--transition-fast);
+    font-family: var(--font-body);
+}
+
+.index-tab-btn:hover {
+    color: var(--accent);
+}
+
+.index-tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+.character-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+}
+
+.char-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--accent);
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: var(--font-telugu);
+}
+
+.char-btn:hover, .char-btn.active {
+    background: var(--accent);
+    color: #0a0a12;
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.2);
+}
+
+.char-section {
+    margin-bottom: 2rem;
+}
+
+.char-section-header {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    font-family: var(--font-telugu);
+}
+
+.char-song-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.char-song-item {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 1.05rem;
+    font-weight: 500;
+    font-family: var(--font-telugu);
+    transition: color var(--transition-fast);
+}
+
+.char-song-item:hover {
+    color: var(--accent2);
+    text-decoration: underline;
+}
+
 /* ── Song Detail Page ────────────────────────────────────────────────────── */
 
 .song-detail {
