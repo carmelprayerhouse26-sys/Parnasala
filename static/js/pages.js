@@ -361,17 +361,38 @@ async function renderSongsPage() {
         charSongList.innerHTML = '<div class="skeleton" style="height:30px; margin-bottom:10px;"></div><div class="skeleton" style="height:30px;"></div>';
         indexResultsContainer.style.display = 'block';
 
-        let url = '/api/songs?';
-        if (langType === 'telugu') url += `telugu_char=${encodeURIComponent(character)}&`;
-        if (langType === 'english') url += `english_char=${encodeURIComponent(character)}&`;
-
         try {
-            const songs = await api(url);
-            if (songs.length > 0) {
-                // Split grid into two columns if needed, but flex column is fine as per mockup
-                charSongList.innerHTML = songs.map(s => `
+            // Fetch ALL songs and filter client-side - eliminates all server Unicode bugs
+            const allSongs = await api('/api/songs');
+            const searchChar = character.trim().normalize('NFC')[0];
+
+            let matched = [];
+
+            if (langType === 'telugu') {
+                matched = allSongs.filter(s => {
+                    const titleTe = (s.title_te || '').normalize('NFC');
+                    if (!titleTe) return false;
+                    // Find the first actual Telugu character (U+0C00..U+0C7F) ignoring spaces/invisible chars
+                    for (const c of titleTe) {
+                        const code = c.codePointAt(0);
+                        if (code >= 0x0C00 && code <= 0x0C7F) {
+                            return c === searchChar;
+                        }
+                        if (c.trim() !== '') break; // non-Telugu non-space: stop
+                    }
+                    return false;
+                });
+            } else if (langType === 'english') {
+                matched = allSongs.filter(s => {
+                    const titleEn = (s.title_en || s.title || '').trim().toUpperCase();
+                    return titleEn.startsWith(character.toUpperCase());
+                });
+            }
+
+            if (matched.length > 0) {
+                charSongList.innerHTML = matched.map(s => `
                     <a href="#/songs/${s.slug}" class="char-song-item">
-                        ${escapeHtml(langType === 'telugu' && s.title_te ? s.title_te : s.title_en)}
+                        ${escapeHtml(langType === 'telugu' && s.title_te ? s.title_te : (s.title_en || s.title || ''))}
                     </a>
                 `).join('');
             } else {
