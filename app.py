@@ -60,36 +60,36 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 from db_adapter import get_db
 
 def init_db():
-    """Create all tables if they don't exist."""
+    """Create all tables if they don't exist. Works with SQLite and PostgreSQL."""
     conn = get_db()
-    conn.executescript('''
-        CREATE TABLE IF NOT EXISTS songs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
+    is_pg = conn.is_postgres if hasattr(conn, 'is_postgres') else False
+
+    # Use separate statements for PostgreSQL compatibility
+    tables = [
+        '''CREATE TABLE IF NOT EXISTS songs (
+            id {serial} PRIMARY KEY,
+            title TEXT NOT NULL DEFAULT '',
             title_te TEXT DEFAULT '',
             title_en TEXT DEFAULT '',
-            lyrics TEXT NOT NULL,
+            lyrics TEXT NOT NULL DEFAULT '',
             lyrics_en TEXT DEFAULT '',
             category TEXT DEFAULT 'General',
             slug TEXT UNIQUE NOT NULL,
-            created_at TEXT DEFAULT (datetime('now'))
-        );
-
-        CREATE TABLE IF NOT EXISTS admins (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at {timestamp}
+        )''',
+        '''CREATE TABLE IF NOT EXISTS admins (
+            id {serial} PRIMARY KEY,
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL
-        );
-
-        CREATE TABLE IF NOT EXISTS images (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+        )''',
+        '''CREATE TABLE IF NOT EXISTS images (
+            id {serial} PRIMARY KEY,
             filename TEXT NOT NULL,
             caption TEXT DEFAULT '',
-            uploaded_at TEXT DEFAULT (datetime('now'))
-        );
-
-        CREATE TABLE IF NOT EXISTS settings (
-            id INTEGER PRIMARY KEY CHECK (id = 1),
+            uploaded_at {timestamp}
+        )''',
+        '''CREATE TABLE IF NOT EXISTS settings (
+            id INTEGER PRIMARY KEY,
             church_name TEXT DEFAULT 'Parnasala Fellowship',
             tagline TEXT DEFAULT 'A Place of Worship and Fellowship',
             logo_url TEXT DEFAULT '',
@@ -97,26 +97,39 @@ def init_db():
             contact TEXT DEFAULT '',
             address TEXT DEFAULT '',
             social_links TEXT DEFAULT '{}'
-        );
-
-        CREATE TABLE IF NOT EXISTS categories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+        )''',
+        '''CREATE TABLE IF NOT EXISTS categories (
+            id {serial} PRIMARY KEY,
             name TEXT UNIQUE NOT NULL
-        );
-
-        CREATE TABLE IF NOT EXISTS articles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+        )''',
+        '''CREATE TABLE IF NOT EXISTS articles (
+            id {serial} PRIMARY KEY,
             title TEXT NOT NULL,
             title_te TEXT DEFAULT '',
             content TEXT DEFAULT '',
             pdf_url TEXT DEFAULT '',
             slug TEXT UNIQUE NOT NULL,
-            published_at TEXT DEFAULT (datetime('now')),
-            created_at TEXT DEFAULT (datetime('now'))
-        );
+            published_at {timestamp},
+            created_at {timestamp}
+        )'''
+    ]
 
-        INSERT OR IGNORE INTO settings (id) VALUES (1);
-    ''')
+    if is_pg:
+        serial = "SERIAL"
+        timestamp = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+    else:
+        serial = "INTEGER PRIMARY KEY AUTOINCREMENT"
+        timestamp = "TEXT DEFAULT (datetime('now'))"
+
+    for table_sql in tables:
+        sql = table_sql.replace("{serial} PRIMARY KEY", serial).replace("{timestamp}", timestamp)
+        conn.execute(sql)
+
+    # Insert default settings row
+    try:
+        conn.execute("INSERT INTO settings (id) VALUES (1)")
+    except Exception:
+        pass  # Already exists
 
     # Seed default admin if table is empty
     admin_count = conn.execute("SELECT COUNT(*) FROM admins").fetchone()[0]
@@ -127,29 +140,29 @@ def init_db():
             ('carmelprayerhouse26@gmail.com', pw_hash)
         )
 
-    # Migration: Add pdf_url column to articles if it doesn't exist
-    try:
-        conn.execute("SELECT pdf_url FROM articles LIMIT 1")
-    except Exception:
-        conn.execute("ALTER TABLE articles ADD COLUMN pdf_url TEXT DEFAULT ''")
+    # Seed default categories
+    default_cats = ['Worship', 'Praise', 'Youth', 'Hymns', 'Christmas', 'Easter', 'Good Friday', 'Lent', 'Prayer']
+    for cat in default_cats:
+        try:
+            conn.execute("INSERT INTO categories (name) VALUES (?)", (cat,))
+        except Exception:
+            pass  # Already exists
 
-    # Migration: Add title_te column to songs if it doesn't exist
-    try:
-        conn.execute("SELECT title_te FROM songs LIMIT 1")
-    except Exception:
-        conn.execute("ALTER TABLE songs ADD COLUMN title_te TEXT DEFAULT ''")
-
-    # Migration: Add title_en column to songs if it doesn't exist
-    try:
-        conn.execute("SELECT title_en FROM songs LIMIT 1")
-    except Exception:
-        conn.execute("ALTER TABLE songs ADD COLUMN title_en TEXT DEFAULT ''")
-
-    # Migration: Add lyrics_en column to songs if it doesn't exist
-    try:
-        conn.execute("SELECT lyrics_en FROM songs LIMIT 1")
-    except Exception:
-        conn.execute("ALTER TABLE songs ADD COLUMN lyrics_en TEXT DEFAULT ''")
+    # Migration: Add columns if they don't exist
+    migrations = [
+        ("songs", "title_te", "TEXT DEFAULT ''"),
+        ("songs", "title_en", "TEXT DEFAULT ''"),
+        ("songs", "lyrics_en", "TEXT DEFAULT ''"),
+        ("articles", "pdf_url", "TEXT DEFAULT ''"),
+    ]
+    for table, col, col_type in migrations:
+        try:
+            conn.execute(f"SELECT {col} FROM {table} LIMIT 1")
+        except Exception:
+            try:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}")
+            except Exception:
+                pass
 
     conn.commit()
     conn.close()
@@ -238,7 +251,6 @@ def get_songs():
     params = []
 
     if search:
-        # Search in title (English), title_en, title_te (Telugu), and lyrics
         query += " AND (title LIKE ? OR title_en LIKE ? OR title_te LIKE ? OR lyrics LIKE ?)"
         search_term = f'%{search}%'
         params.extend([search_term, search_term, search_term, search_term])
@@ -246,44 +258,32 @@ def get_songs():
         query += " AND category = ?"
         params.append(category)
 
-    query += " ORDER BY title ASC"
+    # Filter by Telugu character at the SQL level (more reliable than Python comparison)
+    if telugu_char:
+        query += " AND title_te LIKE ?"
+        params.append(f'{telugu_char}%')
+
+    # Filter by English character at the SQL level
+    if english_char:
+        query += " AND (title_en LIKE ? OR title_en LIKE ?)"
+        params.append(f'{english_char}%')
+        params.append(f'{english_char.lower()}%')
+
+    query += " ORDER BY title_te ASC, title_en ASC"
     rows = conn.execute(query, params).fetchall()
     conn.close()
 
     songs = [dict(r) for r in rows]
     
-    # Filter by Telugu word if specified
+    # Filter by Telugu word if specified (still done in Python for word-level matching)
     if telugu_word:
         filtered_songs = []
         for song in songs:
-            # Check if title_te starts with the Telugu word
             song_title_te = song.get('title_te', '')
             if song_title_te:
                 first_word = get_first_telugu_word(song_title_te)
                 if first_word and first_word.lower().startswith(telugu_word.lower()):
                     filtered_songs.append(song)
-        songs = filtered_songs
-    
-    # Filter by Telugu character if specified
-    if telugu_char:
-        filtered_songs = []
-        norm_char = unicodedata.normalize('NFC', telugu_char)
-        for song in songs:
-            # Check if title_te starts with the Telugu character
-            song_title_te = song.get('title_te', '')
-            if song_title_te:
-                norm_title = unicodedata.normalize('NFC', song_title_te)
-                if norm_title.startswith(norm_char):
-                    filtered_songs.append(song)
-        songs = filtered_songs
-    
-    # Filter by English character if specified
-    if english_char:
-        filtered_songs = []
-        for song in songs:
-            song_title_en = song.get('title_en', '')
-            if song_title_en and song_title_en[0].upper() == english_char:
-                filtered_songs.append(song)
         songs = filtered_songs
     
     return jsonify(songs)

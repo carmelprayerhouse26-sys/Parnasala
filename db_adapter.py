@@ -1,6 +1,5 @@
 import sqlite3
 import os
-import re
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
@@ -27,19 +26,31 @@ class DBConnection:
 
     def _convert_query(self, query):
         if self.is_postgres:
-            # Convert SQLite placeholders back to Postgres placeholders
+            # Convert SQLite placeholders to Postgres placeholders
             query = query.replace('?', '%s')
             # SQLite Auto increment
             query = query.replace('INTEGER PRIMARY KEY AUTOINCREMENT', 'SERIAL PRIMARY KEY')
             # SQLite datetime
             query = query.replace("datetime('now')", "CURRENT_TIMESTAMP")
+            # SQLite INSERT OR IGNORE -> PostgreSQL ON CONFLICT DO NOTHING
+            if 'INSERT OR IGNORE' in query.upper() or 'INSERT OR IGNORE' in query:
+                query = query.replace('INSERT OR IGNORE', 'INSERT')
+                query = query.replace('insert or ignore', 'INSERT')
+                # Add ON CONFLICT DO NOTHING at the end
+                query = query.rstrip().rstrip(';')
+                query += ' ON CONFLICT DO NOTHING'
         return query
 
     def execute(self, query, params=None):
         query = self._convert_query(query)
         if self.is_postgres:
-            cursor = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-            cursor.execute(query, params or ())
+            cursor = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            try:
+                cursor.execute(query, params or ())
+            except Exception as e:
+                # Auto-rollback on error so connection isn't stuck
+                self.conn.rollback()
+                raise e
             return PostgresCursorWrapper(cursor)
         else:
             if params:
@@ -50,7 +61,6 @@ class DBConnection:
         script = self._convert_query(script)
         if self.is_postgres:
             cursor = self.conn.cursor()
-            # postgres uses simple execute for multiple statements separated by ';'
             cursor.execute(script)
         else:
             self.conn.executescript(script)
@@ -64,14 +74,24 @@ class DBConnection:
 class PostgresCursorWrapper:
     def __init__(self, cursor):
         self.cursor = cursor
+        self.lastrowid = getattr(cursor, 'lastrowid', None)
 
     def fetchone(self):
         row = self.cursor.fetchone()
-        return row
+        return dict(row) if row else None
 
     def fetchall(self):
         rows = self.cursor.fetchall()
-        return rows
+        return [dict(r) for r in rows]
+
+    def __getitem__(self, key):
+        """Allow index access for COUNT(*) etc."""
+        row = self.cursor.fetchone()
+        if row:
+            if isinstance(key, int):
+                return list(row.values())[key]
+            return row[key]
+        return None
 
 def get_db():
     return DBConnection()
