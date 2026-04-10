@@ -10,6 +10,7 @@ import csv
 import io
 import re
 import sqlite3
+import unicodedata
 import uuid
 import random
 import time
@@ -266,11 +267,14 @@ def get_songs():
     # Filter by Telugu character if specified
     if telugu_char:
         filtered_songs = []
+        norm_char = unicodedata.normalize('NFC', telugu_char)
         for song in songs:
             # Check if title_te starts with the Telugu character
             song_title_te = song.get('title_te', '')
-            if song_title_te and song_title_te[0] == telugu_char:
-                filtered_songs.append(song)
+            if song_title_te:
+                norm_title = unicodedata.normalize('NFC', song_title_te)
+                if norm_title.startswith(norm_char):
+                    filtered_songs.append(song)
         songs = filtered_songs
     
     # Filter by English character if specified
