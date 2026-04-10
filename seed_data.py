@@ -21,11 +21,9 @@ def seed():
     cur.executescript('''
         CREATE TABLE IF NOT EXISTS songs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            title_te TEXT DEFAULT '',
-            title_en TEXT DEFAULT '',
+            title_te TEXT NOT NULL,
+            title_en TEXT NOT NULL,
             lyrics TEXT NOT NULL,
-            lyrics_en TEXT DEFAULT '',
             category TEXT DEFAULT 'General',
             slug TEXT UNIQUE NOT NULL,
             created_at TEXT DEFAULT (datetime('now'))
@@ -288,8 +286,8 @@ def seed():
 
     for song in songs:
         cur.execute(
-            "INSERT INTO songs (title, title_te, title_en, lyrics, lyrics_en, category, slug) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (song['title'], song.get('title_te', ''), song.get('title_en', song['title']), song['lyrics'], song.get('lyrics_en', song['lyrics']), song['category'], song['slug'])
+            "INSERT INTO songs (title_te, title_en, lyrics, category, slug) VALUES (?, ?, ?, ?, ?)",
+            (song.get('title_te', ''), song.get('title_en', ''), song['lyrics'], song['category'], song['slug'])
         )
 
     # Seed articles
