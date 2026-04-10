@@ -705,16 +705,14 @@ def change_password():
 @admin_required
 def add_song():
     data = request.get_json()
-    if not data or not data.get('title') or not data.get('lyrics'):
-        return jsonify({'error': 'Title and lyrics are required'}), 400
+    if not data or not data.get('title_te') or not data.get('title_en') or not data.get('lyrics'):
+        return jsonify({'error': 'Title (Telugu & English) and lyrics are required'}), 400
 
-    title = data['title'].strip()
-    title_te = data.get('title_te', '').strip()
-    title_en = data.get('title_en', '').strip() or title  # Default to title if not provided
+    title_te = data['title_te'].strip()
+    title_en = data['title_en'].strip()
     lyrics = data['lyrics'].strip()
-    lyrics_en = data.get('lyrics_en', '').strip()
     category = data.get('category', 'General').strip()
-    slug = slugify(title)
+    slug = slugify(title_en)
 
     conn = get_db()
     # Ensure unique slug
@@ -727,8 +725,8 @@ def add_song():
         counter += 1
 
     conn.execute(
-        "INSERT INTO songs (title, title_te, title_en, lyrics, lyrics_en, category, slug) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (title, title_te, title_en, lyrics, lyrics_en, category, slug)
+        "INSERT INTO songs (title_te, title_en, lyrics, category, slug) VALUES (?, ?, ?, ?, ?)",
+        (title_te, title_en, lyrics, category, slug)
     )
     conn.commit()
     conn.close()
@@ -749,17 +747,15 @@ def edit_song(song_id):
         conn.close()
         return jsonify({'error': 'Song not found'}), 404
 
-    title = data.get('title', song['title']).strip()
     title_te = data.get('title_te', song.get('title_te', '')).strip()
-    title_en = data.get('title_en', song.get('title_en', '')).strip() or title
+    title_en = data.get('title_en', song.get('title_en', '')).strip()
     lyrics = data.get('lyrics', song['lyrics']).strip()
-    lyrics_en = data.get('lyrics_en', song.get('lyrics_en', '')).strip()
     category = data.get('category', song['category']).strip()
 
-    # Regenerate slug if title changed
+    # Regenerate slug if title_en changed
     slug = song['slug']
-    if title != song['title']:
-        slug = slugify(title)
+    if title_en != song.get('title_en', ''):
+        slug = slugify(title_en)
         existing = conn.execute(
             "SELECT id FROM songs WHERE slug = ? AND id != ?", (slug, song_id)
         ).fetchone()
@@ -773,8 +769,8 @@ def edit_song(song_id):
             counter += 1
 
     conn.execute(
-        "UPDATE songs SET title=?, title_te=?, title_en=?, lyrics=?, lyrics_en=?, category=?, slug=? WHERE id=?",
-        (title, title_te, title_en, lyrics, lyrics_en, category, slug, song_id)
+        "UPDATE songs SET title_te=?, title_en=?, lyrics=?, category=?, slug=? WHERE id=?",
+        (title_te, title_en, lyrics, category, slug, song_id)
     )
     conn.commit()
     conn.close()

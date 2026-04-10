@@ -414,7 +414,8 @@ async function renderSongDetailPage(slug) {
                 </a>
 
                 <div class="song-detail-header">
-                    <h1 class="song-detail-title">${escapeHtml(song.title)}</h1>
+                    <h1 class="song-detail-title" style="font-family: var(--font-telugu);">${escapeHtml(song.title_te || '')}</h1>
+                    <h2 style="font-size: 1.3rem; color: var(--text-secondary); margin-bottom: 1rem;">${escapeHtml(song.title_en || '')}</h2>
                     <div class="song-detail-meta">
                         <span class="song-card-category">${escapeHtml(song.category)}</span>
                         ${song.created_at ? `<span style="color: var(--text-muted); font-size: 0.85rem;">${formatDate(song.created_at)}</span>` : ''}
@@ -430,7 +431,7 @@ async function renderSongDetailPage(slug) {
                         <span class="material-icons-round" style="font-size:1rem;">content_copy</span>
                         <span data-i18n="song_copy">${t('song_copy')}</span>
                     </button>
-                    <button class="btn btn-sm btn-secondary" onclick="printContent('${escapeHtml(song.title).replace(/'/g, "\\'")}', \`${song.lyrics.replace(/`/g, '\\`').replace(/\\/g, '\\\\')}\`)">
+                    <button class="btn btn-sm btn-secondary" onclick="printContent('${escapeHtml(song.title_te + ' ' + song.title_en).replace(/'/g, "\\'")}', \`${song.lyrics.replace(/`/g, '\\`').replace(/\\/g, '\\\\')}\`)">
                         <span class="material-icons-round" style="font-size:1rem;">print</span>
                         <span data-i18n="song_print">${t('song_print')}</span>
                     </button>

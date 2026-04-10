@@ -8,12 +8,13 @@ function SongCard(song, index = 0) {
     const isFav = Favorites.isFav(song.slug);
     const preview = truncate(song.lyrics, 100);
     const num = String(index + 1).padStart(2, '0');
+    const displayTitle = `${escapeHtml(song.title_te || '')} ${escapeHtml(song.title_en || '')}`.trim();
 
     return `
         <div class="song-card animate-in" onclick="navigateTo('/songs/${song.slug}')" style="animation-delay: ${index * 0.05}s">
             <span class="song-card-number">${num}</span>
             <div class="song-card-header">
-                <h3 class="song-card-title">${escapeHtml(song.title)}</h3>
+                <h3 class="song-card-title">${displayTitle}</h3>
                 <button class="song-card-fav ${isFav ? 'active' : ''}"
                         onclick="event.stopPropagation(); toggleFavorite('${song.slug}', this)"
                         title="${isFav ? t('song_unfavorite') : t('song_favorite')}">
