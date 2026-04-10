@@ -258,11 +258,6 @@ def get_songs():
         query += " AND category = ?"
         params.append(category)
 
-    # Filter by Telugu character at the SQL level (more reliable than Python comparison)
-    if telugu_char:
-        query += " AND title_te LIKE ?"
-        params.append(f'{telugu_char}%')
-
     # Filter by English character at the SQL level
     if english_char:
         query += " AND (title_en LIKE ? OR title_en LIKE ?)"
@@ -275,7 +270,7 @@ def get_songs():
 
     songs = [dict(r) for r in rows]
     
-    # Filter by Telugu word if specified (still done in Python for word-level matching)
+    # Filter by Telugu word if specified
     if telugu_word:
         filtered_songs = []
         for song in songs:
@@ -283,6 +278,27 @@ def get_songs():
             if song_title_te:
                 first_word = get_first_telugu_word(song_title_te)
                 if first_word and first_word.lower().startswith(telugu_word.lower()):
+                    filtered_songs.append(song)
+        songs = filtered_songs
+        
+    # Extremely robust Filter by Telugu character
+    # This strips all spaces and invisible Unicode marks (like zero-width joiners) and matches the exact base consonant
+    if telugu_char:
+        filtered_songs = []
+        # Normalize the requested character just in case
+        search_c = unicodedata.normalize('NFC', telugu_char)[0] if telugu_char else ''
+        for song in songs:
+            title_te = song.get('title_te', '')
+            if title_te:
+                # Find the first actual Telugu character in the string
+                first_telugu_char = ''
+                for c in title_te:
+                    # Match any character in the Telugu Unicode block (U+0C00 to U+0C7F)
+                    if '\u0C00' <= c <= '\u0C7F':
+                        first_telugu_char = c
+                        break
+                
+                if first_telugu_char == search_c:
                     filtered_songs.append(song)
         songs = filtered_songs
     
