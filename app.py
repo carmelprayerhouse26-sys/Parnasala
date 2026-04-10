@@ -1264,7 +1264,7 @@ with app.app_context():
     init_db()
 
 if __name__ == '__main__':
-    print("\n  🎵 Parnasala Fellowship Songs Book")
-    print("  ─────────────────────────────")
+    print("\n  Parnasala Fellowship Songs Book")
+    print("  -----------------------------")
     print("  Open: http://localhost:5000\n")
     app.run(debug=True, port=5000)

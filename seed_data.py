@@ -64,7 +64,7 @@ def seed():
     )
 
     # ── Categories ───────────────────────────────────────────────────────
-    categories = ['Worship', 'Praise', 'Youth', 'Hymns', 'Christmas', 'Easter', 'Prayer']
+    categories = ['Worship', 'Praise', 'Youth', 'Hymns', 'Christmas', 'Easter', 'Good Friday', 'Lent', 'Prayer']
     for cat in categories:
         cur.execute("INSERT OR IGNORE INTO categories (name) VALUES (?)", (cat,))
 
