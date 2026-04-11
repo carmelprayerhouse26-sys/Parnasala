@@ -356,31 +356,32 @@ async function renderSongsPage() {
         }
     }
 
+    // Strips Telugu vowel signs (matras), virama, anusvara, visarga
+    // so that జు, జా, జి etc. all return the base letter జ
+    function getBaseTeluguLetter(text) {
+        if (!text) return '';
+        text = text.trim().normalize('NFC');
+        // Remove: U+0C02 anusvara, U+0C03 visarga, U+0C3E-U+0C4C matras, U+0C4D virama
+        const cleaned = text.replace(/[\u0C02\u0C03\u0C3E-\u0C4D]/g, '');
+        return cleaned[0] || '';
+    }
+
     async function loadGroupedSongs(character, langType) {
         selectedCharHeader.textContent = character;
         charSongList.innerHTML = '<div class="skeleton" style="height:30px; margin-bottom:10px;"></div><div class="skeleton" style="height:30px;"></div>';
         indexResultsContainer.style.display = 'block';
 
         try {
-            // Fetch ALL songs and filter client-side - eliminates all server Unicode bugs
             const allSongs = await api('/api/songs');
-            const searchChar = character.trim().normalize('NFC')[0];
+            const searchBase = getBaseTeluguLetter(character) || character.trim().normalize('NFC')[0];
 
             let matched = [];
 
             if (langType === 'telugu') {
                 matched = allSongs.filter(s => {
-                    const titleTe = (s.title_te || '').normalize('NFC');
+                    const titleTe = (s.title_te || '').trim();
                     if (!titleTe) return false;
-                    // Find the first actual Telugu character (U+0C00..U+0C7F) ignoring spaces/invisible chars
-                    for (const c of titleTe) {
-                        const code = c.codePointAt(0);
-                        if (code >= 0x0C00 && code <= 0x0C7F) {
-                            return c === searchChar;
-                        }
-                        if (c.trim() !== '') break; // non-Telugu non-space: stop
-                    }
-                    return false;
+                    return getBaseTeluguLetter(titleTe) === searchBase;
                 });
             } else if (langType === 'english') {
                 matched = allSongs.filter(s => {
