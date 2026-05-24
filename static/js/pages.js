@@ -35,6 +35,7 @@ async function renderHomePage() {
     const settings = await getSettings();
     const churchName = settings.church_name || 'Parnasala Fellowship';
     const tagline    = settings.tagline || t('hero_tagline');
+    const logoUrl    = settings.logo_url || '/uploads/logo.jpg';
 
     app.innerHTML = `
         <div class="page-transition">
@@ -43,7 +44,7 @@ async function renderHomePage() {
             <section class="hero-section">
                 <div class="hero-overlay"></div>
                 <div class="hero-content">
-                    <img src="/uploads/logo.jpg" alt="Church Logo" class="hero-logo">
+                    <img src="${logoUrl}" alt="Church Logo" class="hero-logo">
                     <h1 class="hero-church-name">${escapeHtml(churchName)}</h1>
                     <p class="hero-tagline">${escapeHtml(tagline)}</p>
                     <div class="hero-buttons">

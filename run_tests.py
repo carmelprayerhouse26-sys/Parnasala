@@ -8,6 +8,7 @@ import io
 # Set test database path before importing app or config
 TEST_DB_PATH = 'test_database.db'
 os.environ['DATABASE_PATH'] = TEST_DB_PATH
+os.environ['DATABASE_URL'] = '' # Force local SQLite for test isolation
 
 # Import application components
 from app import app, init_db

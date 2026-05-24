@@ -132,7 +132,8 @@ def init_db():
         pass  # Already exists
 
     # Seed default admin if table is empty
-    admin_count = conn.execute("SELECT COUNT(*) FROM admins").fetchone()[0]
+    admin_row = conn.execute("SELECT COUNT(*) FROM admins").fetchone()
+    admin_count = list(admin_row.values())[0] if isinstance(admin_row, dict) else admin_row[0]
     if admin_count == 0:
         pw_hash = bcrypt.generate_password_hash('Parnasala@fellowship').decode('utf-8')
         conn.execute(
@@ -150,6 +151,7 @@ def init_db():
 
     # Migration: Add columns if they don't exist
     migrations = [
+        ("songs", "title", "TEXT DEFAULT ''"),
         ("songs", "title_te", "TEXT DEFAULT ''"),
         ("songs", "title_en", "TEXT DEFAULT ''"),
         ("songs", "lyrics_en", "TEXT DEFAULT ''"),

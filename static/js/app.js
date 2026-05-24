@@ -238,9 +238,10 @@ async function loadFooterData() {
         const navName = $('#nav-church-name');
         if (navName) navName.textContent = settings.church_name || 'Parnasala Fellowship';
 
-        // Update nav logo and favicon
+        // Update nav logo, favicon, and loading screen logo
         const navLogo = $('#nav-logo');
         const favicon = $('#favicon');
+        const loadingLogo = $('.loading-logo');
         if (settings.logo_url) {
             if (navLogo) {
                 navLogo.src = settings.logo_url;
@@ -248,6 +249,9 @@ async function loadFooterData() {
             }
             if (favicon) {
                 favicon.href = settings.logo_url;
+            }
+            if (loadingLogo) {
+                loadingLogo.src = settings.logo_url;
             }
         }
 
