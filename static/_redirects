@@ -1,0 +1,10 @@
+# Cloudflare Pages Redirects & Reverse-Proxy Configurations
+# -------------------------------------------------------------
+# These rules tell Cloudflare to transparently proxy API calls and uploaded files
+# back to your Render web server, completely bypassing CORS constraints.
+
+# Proxy dynamic API requests to Render
+/api/*  https://parnasala-fellowship.onrender.com/api/:splat  200
+
+# Proxy dynamic uploads to Render (if not using Cloudinary)
+/uploads/*  https://parnasala-fellowship.onrender.com/uploads/:splat  200
