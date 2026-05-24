@@ -248,7 +248,10 @@ async function loadFooterData() {
                 navLogo.style.display = '';
             }
             if (favicon) {
-                favicon.href = settings.logo_url;
+                // Add timestamp to force browser to ignore favicon cache
+                const timestamp = new Date().getTime();
+                const separator = settings.logo_url.includes('?') ? '&' : '?';
+                favicon.href = settings.logo_url + separator + 't=' + timestamp;
             }
             if (loadingLogo) {
                 loadingLogo.src = settings.logo_url;

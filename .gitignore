@@ -6,3 +6,4 @@ uploads/
 .venv/
 .vscode/
 *.db-journal
+google_drive_credentials.json

@@ -32,6 +32,8 @@ if CLOUDINARY_URL:
     except ImportError:
         CLOUDINARY_URL = None
 
+from gdrive_service import upload_pdf_to_drive, delete_from_drive
+
 from flask import (
     Flask, request, jsonify, session,
     send_from_directory, redirect
@@ -1136,14 +1138,18 @@ def add_article():
         if 'pdf_file' in request.files:
             pdf_file = request.files['pdf_file']
             if pdf_file.filename and allowed_file(pdf_file.filename, ALLOWED_PDF_EXTENSIONS):
-                if CLOUDINARY_URL:
-                    upload_result = cloudinary.uploader.upload(pdf_file, resource_type='raw')
-                    pdf_url = upload_result.get('secure_url')
+                # Always upload PDF to Google Drive
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_id = uuid.uuid4().hex[:6]
+                pdf_filename = f"article_{timestamp}_{unique_id}.pdf"
+                
+                drive_url = upload_pdf_to_drive(pdf_file, pdf_filename)
+                if drive_url:
+                    pdf_url = drive_url
                 else:
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                    unique_id = uuid.uuid4().hex[:6]
-                    pdf_filename = f"article_{timestamp}_{unique_id}.pdf"
+                    # Fallback to local storage if Drive fails/not configured
                     pdf_path = os.path.join(UPLOAD_FOLDER, pdf_filename)
+                    pdf_file.seek(0)
                     pdf_file.save(pdf_path)
                     pdf_url = f"/uploads/{pdf_filename}"
     else:
@@ -1201,31 +1207,40 @@ def edit_article(article_id):
         if 'pdf_file' in request.files:
             pdf_file = request.files['pdf_file']
             if pdf_file.filename and allowed_file(pdf_file.filename, ALLOWED_PDF_EXTENSIONS):
-                # Delete old PDF if exists (assuming local)
-                if article['pdf_url'] and not article['pdf_url'].startswith('http'):
-                    old_pdf = article['pdf_url'].replace('/uploads/', '')
-                    old_path = os.path.join(UPLOAD_FOLDER, old_pdf)
-                    if os.path.exists(old_path):
-                        os.remove(old_path)
+                # Delete old PDF
+                if article['pdf_url']:
+                    if 'drive.google.com' in article['pdf_url']:
+                        delete_from_drive(article['pdf_url'])
+                    elif not article['pdf_url'].startswith('http'):
+                        old_pdf = article['pdf_url'].replace('/uploads/', '')
+                        old_path = os.path.join(UPLOAD_FOLDER, old_pdf)
+                        if os.path.exists(old_path):
+                            os.remove(old_path)
                 
-                if CLOUDINARY_URL:
-                    upload_result = cloudinary.uploader.upload(pdf_file, resource_type='raw')
-                    pdf_url = upload_result.get('secure_url')
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_id = uuid.uuid4().hex[:6]
+                pdf_filename = f"article_{timestamp}_{unique_id}.pdf"
+                
+                drive_url = upload_pdf_to_drive(pdf_file, pdf_filename)
+                if drive_url:
+                    pdf_url = drive_url
                 else:
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                    unique_id = uuid.uuid4().hex[:6]
-                    pdf_filename = f"article_{timestamp}_{unique_id}.pdf"
+                    # Fallback to local storage if Drive fails/not configured
                     pdf_path = os.path.join(UPLOAD_FOLDER, pdf_filename)
+                    pdf_file.seek(0)
                     pdf_file.save(pdf_path)
                     pdf_url = f"/uploads/{pdf_filename}"
 
         # Check if user wants to remove PDF
         if request.form.get('remove_pdf') == '1':
-            if article['pdf_url'] and not article['pdf_url'].startswith('http'):
-                old_pdf = article['pdf_url'].replace('/uploads/', '')
-                old_path = os.path.join(UPLOAD_FOLDER, old_pdf)
-                if os.path.exists(old_path):
-                    os.remove(old_path)
+            if article['pdf_url']:
+                if 'drive.google.com' in article['pdf_url']:
+                    delete_from_drive(article['pdf_url'])
+                elif not article['pdf_url'].startswith('http'):
+                    old_pdf = article['pdf_url'].replace('/uploads/', '')
+                    old_path = os.path.join(UPLOAD_FOLDER, old_pdf)
+                    if os.path.exists(old_path):
+                        os.remove(old_path)
             pdf_url = ''
     else:
         data = request.get_json()
@@ -1240,10 +1255,13 @@ def edit_article(article_id):
         # Check if user wants to remove PDF
         if data.get('remove_pdf'):
             if article['pdf_url']:
-                old_pdf = article['pdf_url'].replace('/uploads/', '')
-                old_path = os.path.join(UPLOAD_FOLDER, old_pdf)
-                if os.path.exists(old_path):
-                    os.remove(old_path)
+                if 'drive.google.com' in article['pdf_url']:
+                    delete_from_drive(article['pdf_url'])
+                elif not article['pdf_url'].startswith('http'):
+                    old_pdf = article['pdf_url'].replace('/uploads/', '')
+                    old_path = os.path.join(UPLOAD_FOLDER, old_pdf)
+                    if os.path.exists(old_path):
+                        os.remove(old_path)
             pdf_url = ''
 
     if not title:
@@ -1284,10 +1302,13 @@ def delete_article(article_id):
     conn = get_db()
     article = conn.execute("SELECT * FROM articles WHERE id = ?", (article_id,)).fetchone()
     if article and article['pdf_url']:
-        pdf_name = article['pdf_url'].replace('/uploads/', '')
-        pdf_path = os.path.join(UPLOAD_FOLDER, pdf_name)
-        if os.path.exists(pdf_path):
-            os.remove(pdf_path)
+        if 'drive.google.com' in article['pdf_url']:
+            delete_from_drive(article['pdf_url'])
+        elif not article['pdf_url'].startswith('http'):
+            pdf_name = article['pdf_url'].replace('/uploads/', '')
+            pdf_path = os.path.join(UPLOAD_FOLDER, pdf_name)
+            if os.path.exists(pdf_path):
+                os.remove(pdf_path)
     conn.execute("DELETE FROM articles WHERE id = ?", (article_id,))
     conn.commit()
     conn.close()

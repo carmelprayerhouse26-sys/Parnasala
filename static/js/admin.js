@@ -769,18 +769,6 @@ async function renderAdminImages(container) {
                 </div>
             </div>
 
-            <!-- Logo Upload -->
-            <div style="margin-bottom:2rem; padding:1.5rem; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md);">
-                <h4 style="margin-bottom:0.75rem;">${t('admin_settings_logo')}</h4>
-                <div style="display:flex; align-items:center; gap:1rem;">
-                    <div class="file-upload-area" style="padding:1rem; flex:1;" id="logo-upload-area">
-                        <input type="file" id="logo-file" accept="image/*" style="display:none;">
-                        <span class="material-icons-round" style="font-size:1.5rem;">image</span>
-                        <p style="font-size:0.85rem;">Upload church logo</p>
-                    </div>
-                    <div id="current-logo"></div>
-                </div>
-            </div>
 
             <!-- Image Grid -->
             <div class="admin-image-grid" id="admin-images-grid"></div>
@@ -803,22 +791,6 @@ async function renderAdminImages(container) {
         if (imgFile.files.length > 0) uploadImage(imgFile.files[0]);
     });
 
-    // Logo upload
-    const logoArea = $('#logo-upload-area');
-    const logoFile = $('#logo-file');
-
-    logoArea.addEventListener('click', () => logoFile.click());
-    logoFile.addEventListener('change', () => {
-        if (logoFile.files.length > 0) uploadLogo(logoFile.files[0]);
-    });
-
-    // Show current logo
-    try {
-        const settings = await getSettings();
-        if (settings.logo_url) {
-            $('#current-logo').innerHTML = `<img src="${settings.logo_url}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--accent);">`;
-        }
-    } catch { /* ignore */ }
 
     // Load images
     await loadAdminImages();
@@ -987,6 +959,22 @@ async function renderAdminSettings(container) {
                     <textarea class="form-textarea" id="set-address" rows="3">${escapeHtml(settings.address || '')}</textarea>
                 </div>
 
+                <!-- Logo Upload -->
+                <div style="margin:2rem 0; padding:1.5rem; background:var(--bg-elevated); border:1px solid var(--border-color); border-radius:var(--radius-md);">
+                    <h4 style="margin-bottom:0.75rem; font-size:1rem;">${t('admin_settings_logo')} (Favicon & Navigation)</h4>
+                    <div style="display:flex; align-items:center; gap:1.5rem;">
+                        <div class="file-upload-area" style="padding:1rem; flex:1; cursor:pointer;" id="logo-upload-area">
+                            <input type="file" id="logo-file" accept="image/*" style="display:none;">
+                            <span class="material-icons-round" style="font-size:1.5rem; color:var(--accent);">image</span>
+                            <p style="font-size:0.85rem; margin-top:0.5rem;">Click to upload church logo</p>
+                        </div>
+                        <div id="current-logo" style="display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
+                            ${settings.logo_url ? `<img src="${settings.logo_url}" style="width:70px; height:70px; border-radius:50%; object-fit:cover; border:2px solid var(--accent); box-shadow:0 4px 10px rgba(0,0,0,0.1);">` : '<div style="width:70px; height:70px; border-radius:50%; background:var(--bg-card); border:2px dashed var(--border-color); display:flex; align-items:center; justify-content:center;"><span class="material-icons-round" style="color:var(--text-muted);">image_not_supported</span></div>'}
+                            <span style="font-size:0.75rem; color:var(--text-muted);">Current Logo</span>
+                        </div>
+                    </div>
+                </div>
+
                 <h4 style="margin:1.5rem 0 1rem; font-size:1rem;">${t('admin_settings_social')}</h4>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
                     <div class="form-group">
@@ -1052,6 +1040,16 @@ async function renderAdminSettings(container) {
             btn.disabled = false;
         }
     });
+
+    // Logo upload bindings
+    const logoArea = $('#logo-upload-area');
+    const logoFile = $('#logo-file');
+    if (logoArea && logoFile) {
+        logoArea.addEventListener('click', () => logoFile.click());
+        logoFile.addEventListener('change', () => {
+            if (logoFile.files.length > 0) uploadLogo(logoFile.files[0]);
+        });
+    }
 }
 
 
