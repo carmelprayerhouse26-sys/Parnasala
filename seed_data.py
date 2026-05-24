@@ -13,9 +13,11 @@ app = Flask(__name__)
 bcrypt = Bcrypt(app)
 
 
+from db_adapter import get_db
+
 def seed():
-    conn = sqlite3.connect(DATABASE)
-    cur = conn.cursor()
+    conn = get_db()
+    cur = conn
 
     # ── Create tables ────────────────────────────────────────────────────
     cur.executescript('''
