@@ -238,11 +238,17 @@ async function loadFooterData() {
         const navName = $('#nav-church-name');
         if (navName) navName.textContent = settings.church_name || 'Parnasala Fellowship';
 
-        // Update nav logo
+        // Update nav logo and favicon
         const navLogo = $('#nav-logo');
-        if (navLogo && settings.logo_url) {
-            navLogo.src = settings.logo_url;
-            navLogo.style.display = '';
+        const favicon = $('#favicon');
+        if (settings.logo_url) {
+            if (navLogo) {
+                navLogo.src = settings.logo_url;
+                navLogo.style.display = '';
+            }
+            if (favicon) {
+                favicon.href = settings.logo_url;
+            }
         }
 
         // Footer contact
