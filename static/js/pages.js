@@ -783,6 +783,7 @@ async function renderArticleDetailPage(slug) {
         let contentSection = '';
 
         if (hasPdf) {
+            const embedUrl = formatGoogleDriveUrl(article.pdf_url);
             contentSection += `
                 <div class="article-pdf-section" style="margin-bottom:${hasContent ? '2rem' : '0'};">
                     <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem;">
@@ -790,7 +791,7 @@ async function renderArticleDetailPage(slug) {
                         <span style="font-weight:600; font-size:1rem;">PDF Document</span>
                     </div>
                     <div style="border-radius:var(--radius-lg); overflow:hidden; border:1px solid var(--border-color); background:var(--bg-card);">
-                        <iframe src="${article.pdf_url}" style="width:100%; height:600px; border:none; display:block;" title="PDF Viewer"></iframe>
+                        <iframe src="${embedUrl}" style="width:100%; height:600px; border:none; display:block;" title="PDF Viewer"></iframe>
                     </div>
                     <div style="text-align:center; margin-top:0.75rem;">
                         <a href="${article.pdf_url}" target="_blank" class="btn btn-sm btn-primary" style="font-size:0.85rem;">

@@ -250,3 +250,32 @@ function printContent(title, content) {
     win.document.close();
     win.print();
 }
+
+// ── Google Drive Embed Link Formatter ─────────────────────────────────────────
+
+function formatGoogleDriveUrl(url) {
+    if (!url) return '';
+    
+    // Check if it is a Google Drive URL
+    if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+        let fileId = '';
+        
+        // Match /file/d/FILE_ID/
+        const fileDMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (fileDMatch && fileDMatch[1]) {
+            fileId = fileDMatch[1];
+        } else {
+            // Match ?id=FILE_ID or &id=FILE_ID
+            const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            if (idMatch && idMatch[1]) {
+                fileId = idMatch[1];
+            }
+        }
+        
+        if (fileId) {
+            return `https://drive.google.com/file/d/${fileId}/preview`;
+        }
+    }
+    return url;
+}
+
