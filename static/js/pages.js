@@ -81,7 +81,13 @@ async function renderHomePage() {
 
                 <section class="section" id="recent-section" style="display:none; padding-top:0;">
                     <div class="container">
-                        ${SectionHeader(t('home_recent_tag'), 'home_recent_tag', t('home_recent_title'), 'home_recent_title')}
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+                            ${SectionHeader(t('home_recent_tag'), 'home_recent_tag', t('home_recent_title'), 'home_recent_title')}
+                            <button class="btn btn-secondary btn-sm" id="clear-recent-btn" onclick="clearRecentlyViewed()" style="display:inline-flex; align-items:center; gap:0.3rem; height:fit-content; padding:0.4rem 0.8rem; font-size:0.85rem;">
+                                <span class="material-icons-round" style="font-size:1.1rem;">delete_sweep</span>
+                                <span data-i18n="clear_recent">${t('clear_recent')}</span>
+                            </button>
+                        </div>
                         <div class="recent-songs" id="recent-songs"></div>
                     </div>
                 </section>
@@ -117,7 +123,10 @@ async function renderHomePage() {
         if (stats) stats.innerHTML = `
             ${StatCard(songs.length,      t('home_stats_songs'),      'home_stats_songs')}
             ${StatCard(categories.length, t('home_stats_categories'), 'home_stats_categories')}
-            ${StatCard(favCount,          t('home_stats_favorites'),  'home_stats_favorites')}
+            <div class="stat-card animate-in" onclick="navigateTo('/songs?filter=favorites')" style="cursor:pointer; transition:transform var(--transition-normal); border:1px dashed var(--accent);" title="View Favorites">
+                <div class="stat-number" data-count="${favCount}">0</div>
+                <div class="stat-label" data-i18n="home_stats_favorites">${t('home_stats_favorites')}</div>
+            </div>
         `;
         setTimeout(animateCounters, 200);
     } catch (err) {
@@ -140,6 +149,13 @@ async function renderHomePage() {
 
     setTimeout(observeAnimations, 100);
     setLanguage(currentLang);
+}
+
+function clearRecentlyViewed() {
+    RecentlyViewed.clear();
+    const rs = $('#recent-section');
+    if (rs) rs.style.display = 'none';
+    showToast('Recently viewed songs cleared!', 'success');
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -220,6 +236,20 @@ async function renderSongsPage() {
             pillsContainer.appendChild(btn);
         });
 
+        // Add Favorites pill
+        const favBtn = document.createElement('button');
+        favBtn.className = 'pill';
+        favBtn.dataset.category = '__favorites__';
+        favBtn.dataset.i18n = 'songs_favorites';
+        favBtn.textContent = t('songs_favorites');
+        favBtn.style.border = '1px dashed var(--accent)';
+        favBtn.addEventListener('click', () => {
+            $$('.pill', pillsContainer).forEach(p => p.classList.remove('active'));
+            favBtn.classList.add('active');
+            loadSongs();
+        });
+        pillsContainer.appendChild(favBtn);
+
         // Bind "All" pill
         const allPill = pillsContainer.querySelector('[data-category=""]');
         if (allPill) {
@@ -228,6 +258,13 @@ async function renderSongsPage() {
                 allPill.classList.add('active');
                 loadSongs();
             });
+        }
+
+        // Check if redirecting from favorites card
+        const isFavoritesFilter = window.location.hash.includes('filter=favorites');
+        if (isFavoritesFilter) {
+            if (allPill) allPill.classList.remove('active');
+            favBtn.classList.add('active');
         }
     } catch { /* ignore */ }
 
@@ -443,11 +480,16 @@ async function loadSongs() {
     const teluguWord = activeTeluguPill ? activeTeluguPill.dataset.telugu_word || '' : '';
 
     let url = '/api/songs?';
-    if (category) url += `category=${encodeURIComponent(category)}&`;
+    if (category && category !== '__favorites__') url += `category=${encodeURIComponent(category)}&`;
     if (teluguWord) url += `telugu_word=${encodeURIComponent(teluguWord)}&`;
 
     try {
         let songs = await api(url);
+        
+        // Filter by favorites if pill is selected
+        if (category === '__favorites__') {
+            songs = songs.filter(s => Favorites.isFav(s.slug));
+        }
         
         // Apply robust client-side first-word-priority search if user is typing
         if (search) {

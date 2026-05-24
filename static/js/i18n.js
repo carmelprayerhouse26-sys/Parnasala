@@ -34,6 +34,7 @@ const translations = {
         home_stats_songs: 'Total Songs',
         home_stats_categories: 'Categories',
         home_stats_favorites: 'Your Favorites',
+        clear_recent: 'Clear All',
 
         // Songs page
         songs_tag: '♪ Song Collection',
@@ -41,6 +42,7 @@ const translations = {
         songs_subtitle: 'Search, filter, and explore our worship songs',
         songs_search_placeholder: 'Search songs by title or lyrics…',
         songs_all_categories: 'All',
+        songs_favorites: 'Favorites',
         songs_no_results: 'No songs found',
         songs_no_results_desc: 'Try adjusting your search or filters',
 
@@ -152,6 +154,7 @@ const translations = {
         home_stats_songs: 'మొత్తం పాటలు',
         home_stats_categories: 'వర్గాలు',
         home_stats_favorites: 'మీ ఇష్టమైనవి',
+        clear_recent: 'అన్నీ తీసిвеయి',
 
         // Songs page
         songs_tag: '♪ పాటల సేకరణ',
@@ -159,6 +162,7 @@ const translations = {
         songs_subtitle: 'మా ఆరాధన పాటలను శోధించండి, ఫిల్టర్ చేయండి',
         songs_search_placeholder: 'పాట పేరు లేదా సాహిత్యం ద్వారా శోధించండి…',
         songs_all_categories: 'అన్నీ',
+        songs_favorites: 'ఇష్టమైనవి',
         songs_no_results: 'పాటలు కనుగొనబడలేదు',
         songs_no_results_desc: 'మీ శోధన లేదా ఫిల్టర్‌లను సర్దుబాటు చేయండి',
 

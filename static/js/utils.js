@@ -169,6 +169,9 @@ const RecentlyViewed = {
         // Trim
         if (recent.length > this.MAX) recent = recent.slice(0, this.MAX);
         Storage.set(this.KEY, recent);
+    },
+    clear() {
+        Storage.remove(this.KEY);
     }
 };
 
