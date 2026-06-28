@@ -22,6 +22,9 @@
     
     <!-- Favicon / Church Logo -->
     <link id="favicon" rel="icon" type="image/jpeg" href="/uploads/logo.jpg">
+    
+    <!-- Preload Logo for Loading Screen -->
+    <link rel="preload" href="/uploads/logo.jpg" as="image">
 </head>
 
 <body>
@@ -29,7 +32,7 @@
     <!-- Loading Screen -->
     <div id="loading-screen" class="loading-screen">
         <div class="loading-content">
-            <div class="loading-cross"><img src="/uploads/logo.jpg" alt="Parnasala Fellowship" class="loading-logo"></div>
+            <div class="loading-cross"><img src="/uploads/logo.jpg" alt="Parnasala Fellowship" class="loading-logo" fetchpriority="high"></div>
             <div class="loading-text">Parnasala Fellowship</div>
             <div class="loading-bar">
                 <div class="loading-bar-fill"></div>
